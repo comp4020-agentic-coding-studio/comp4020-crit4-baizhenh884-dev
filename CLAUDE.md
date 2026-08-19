@@ -72,3 +72,25 @@ cited individually in `PROCESS.md`.
 
 There are no project-specific contracts yet for this deliverable --- they'll be
 added here as they're approved.
+
+## Project context
+
+This is my Crit 4 project, called "Play the Wind" --- a wind chime you play in
+the browser. The idea is that you can play the chimes directly, and you can
+also play the wind that pushes them around.
+
+A few things about it that shouldn't change:
+
+- All the sound is made live in the browser with the Web Audio API. There are
+  no <audio> or <video> tags anywhere on the page, not even for small UI sounds.
+- The chimes are tuned to a pentatonic scale, so there's no wrong note, and
+  there's no score, no level, and no way to lose.
+- The page is silent when it loads. The moment someone taps a chime or makes
+  some wind, they should hear something straight away.
+- Each chime is a real <button> inside <main>, and there's also a real
+  <select> inside <main> for switching the sound palette, so it works with
+  keyboard and touch too.
+- You make wind by pressing and dragging (mouse or finger, same gesture): the
+  direction you drag is the wind's direction, and how fast you drag sets how
+  strong it is.
+- This crit also needs a PROCESS.md and a reflections/crit-4.md.
