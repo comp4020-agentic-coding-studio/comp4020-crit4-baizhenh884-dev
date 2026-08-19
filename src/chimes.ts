@@ -1,5 +1,6 @@
 import { playChime, setPaletteBrightness } from "./audio";
 import { addGust, windForceAt } from "./wind";
+import { initWindVisuals } from "./visuals";
 
 interface Chime {
   button: HTMLButtonElement;
@@ -31,6 +32,15 @@ let hasInteracted = false;
 
 function markInteracted(): void {
   hasInteracted = true;
+}
+
+// A single throw: one gust, sweeping the whole field from a random side --
+// not a toggle, so pressing the Wind button or spacebar again just throws
+// another one.
+function throwGust(): void {
+  markInteracted();
+  const dirX = Math.random() < 0.5 ? -1 : 1;
+  addGust(dirX === 1 ? 0 : 100, dirX, 0.9);
 }
 
 function ring(chime: Chime): void {
@@ -96,6 +106,7 @@ interface Drag {
   lastY: number;
   lastTime: number;
   dirX: number;
+  windBuild: number;
   strummed: Set<Chime>;
 }
 
@@ -104,9 +115,21 @@ function chimeAtPoint(chimes: Chime[], clientX: number, clientY: number): Chime 
   return chimes.find((chime) => chime.button === el);
 }
 
+// Below this drag speed (px/s), an air-drag builds no wind at all -- a
+// quick flick barely registers. Above MAX_PUSH_SPEED it's already a full
+// push. WIND_RAMP_SECONDS is how long a *sustained* push takes to approach
+// full strength (and, using the same filter, how long it takes to ease back
+// off) -- the "a bit of inertia" feel, and why a strong gust needs a longer
+// drag rather than one fast swipe.
+const MIN_PUSH_SPEED = 300;
+const MAX_PUSH_SPEED = 2000;
+const WIND_RAMP_SECONDS = 0.55;
+const WIND_BUILD_FLOOR = 0.05;
+
 // Press-and-drag is the main way to play: through the gaps it raises wind
-// that sways and rings nearby chimes on its own (via stepPhysics above);
-// dragging straight across a chime strums it immediately, on top of that.
+// that builds up and sways/rings nearby chimes on its own (via stepPhysics
+// above); dragging straight across a chime strums it instead -- immediate,
+// on contact, regardless of how built-up the wind currently is.
 function setupWind(field: HTMLElement, chimes: Chime[]): void {
   const drags = new Map<number, Drag>();
 
@@ -128,6 +151,7 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
       lastY: event.clientY,
       lastTime: performance.now() / 1000,
       dirX: 1,
+      windBuild: 0,
       strummed,
     });
   });
@@ -151,21 +175,26 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
     const dx = event.clientX - drag.lastX;
     const dy = event.clientY - drag.lastY;
     const speed = Math.hypot(dx, dy) / Math.max(dt, 0.001);
-    const strength = Math.min(speed / 1800, 1);
     if (dx !== 0) {
       drag.dirX = Math.sign(dx);
     }
 
-    if (strength > 0.02) {
+    // How hard this particular instant is pushing, before any ramping --
+    // used directly for the strum kick below so a strum stays crisp, and
+    // fed through the ramp filter for the wind itself so it doesn't.
+    const instant = Math.max(0, Math.min((speed - MIN_PUSH_SPEED) / (MAX_PUSH_SPEED - MIN_PUSH_SPEED), 1));
+    drag.windBuild += (instant - drag.windBuild) * Math.min(dt / WIND_RAMP_SECONDS, 1);
+
+    if (drag.windBuild > WIND_BUILD_FLOOR) {
       const rect = field.getBoundingClientRect();
       const xPercent = ((event.clientX - rect.left) / rect.width) * 100;
-      addGust(xPercent, drag.dirX, strength);
+      addGust(xPercent, drag.dirX, drag.windBuild);
     }
 
     const hit = chimeAtPoint(chimes, event.clientX, event.clientY);
     if (hit && !drag.strummed.has(hit)) {
       drag.strummed.add(hit);
-      hit.angularVelocity += drag.dirX * Math.min(2 + strength * 4, 6);
+      hit.angularVelocity += drag.dirX * Math.min(2 + instant * 4, 6);
       ring(hit);
     }
 
@@ -185,7 +214,12 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
 }
 
 export function initChimes(root: HTMLElement): void {
-  const buttons = Array.from(root.querySelectorAll<HTMLButtonElement>(".chime"));
+  const field = root.querySelector<HTMLElement>(".chime-field");
+  if (!field) {
+    return;
+  }
+
+  const buttons = Array.from(field.querySelectorAll<HTMLButtonElement>(".chime"));
   const chimes: Chime[] = buttons.map((button, index) => {
     const hanger = button.parentElement as HTMLElement;
     const x = parseFloat(hanger.style.getPropertyValue("--x"));
@@ -248,12 +282,25 @@ export function initChimes(root: HTMLElement): void {
       addGust(dirX === 1 ? 0 : 100, dirX, 0.7);
       return;
     }
+    // Space throws a gust, same as the Wind button -- but not when a button
+    // already has focus, since Space activating *that* button (a chime
+    // ringing itself, or the Wind button's own click) is what should happen.
+    if (event.key === " " && !(event.target instanceof HTMLButtonElement)) {
+      event.preventDefault();
+      throwGust();
+      return;
+    }
     const chime = keyToChime.get(event.key.toLowerCase());
     if (chime) {
       markInteracted();
       ring(chime);
     }
   });
+
+  const windButton = root.querySelector<HTMLButtonElement>("#wind-button");
+  if (windButton) {
+    windButton.addEventListener("click", throwGust);
+  }
 
   const palette = root.querySelector<HTMLSelectElement>("#palette");
   if (palette) {
@@ -264,6 +311,11 @@ export function initChimes(root: HTMLElement): void {
     applyPalette();
   }
 
-  setupWind(root, chimes);
+  const canvas = field.querySelector<HTMLCanvasElement>("#wind-canvas");
+  if (canvas) {
+    initWindVisuals(field, canvas);
+  }
+
+  setupWind(field, chimes);
   startPhysicsLoop(chimes);
 }

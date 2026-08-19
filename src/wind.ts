@@ -25,17 +25,21 @@ export function addGust(x: number, dirX: number, strength: number): void {
   });
 }
 
+function prune(now: number): void {
+  for (let i = gusts.length - 1; i >= 0; i--) {
+    if (now - gusts[i].createdAt > MAX_LIFE_SECONDS) {
+      gusts.splice(i, 1);
+    }
+  }
+}
+
 // The push felt at a given field position right now, from every gust still
 // alive -- signed, so it both sways a chime and picks the direction it tips.
 export function windForceAt(xPercent: number, now: number): number {
+  prune(now);
   let total = 0;
-  for (let i = gusts.length - 1; i >= 0; i--) {
-    const gust = gusts[i];
+  for (const gust of gusts) {
     const elapsed = now - gust.createdAt;
-    if (elapsed > MAX_LIFE_SECONDS) {
-      gusts.splice(i, 1);
-      continue;
-    }
     const decay = gust.strength * Math.exp(-elapsed / DECAY_SECONDS);
     const pos = gust.x + gust.dirX * TRAVEL_SPEED * elapsed;
     const dist = xPercent - pos;
@@ -43,4 +47,25 @@ export function windForceAt(xPercent: number, now: number): number {
     total += decay * falloff * gust.dirX;
   }
   return total;
+}
+
+export interface GustTrace {
+  x: number;
+  dirX: number;
+  intensity: number;
+}
+
+// A rendering-only snapshot of where each gust currently is and how strong
+// it still is -- separate from windForceAt so the visual layer never needs
+// to duplicate the decay/travel math to draw what's actually happening.
+export function gustTraces(now: number): GustTrace[] {
+  prune(now);
+  return gusts.map((gust) => {
+    const elapsed = now - gust.createdAt;
+    return {
+      x: gust.x + gust.dirX * TRAVEL_SPEED * elapsed,
+      dirX: gust.dirX,
+      intensity: gust.strength * Math.exp(-elapsed / DECAY_SECONDS),
+    };
+  });
 }

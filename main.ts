@@ -1,6 +1,6 @@
 import { initChimes } from "./src/chimes";
 
-const field = document.querySelector<HTMLElement>(".chime-field");
-if (field) {
-  initChimes(field);
+const main = document.querySelector<HTMLElement>("main");
+if (main) {
+  initChimes(main);
 }

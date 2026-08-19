@@ -81,10 +81,28 @@ a {
 
 .chime.ringing {
   filter: brightness(1.4);
+  box-shadow: 0 0 1.2rem 0.35rem rgba(255, 225, 150, 0.85);
 }
 
 .controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+#wind-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #6b6b6b;
+  border-radius: 0.4rem;
+  background: #eceff2;
+  cursor: pointer;
+}
+
+#wind-button:hover {
+  background: #dfe3e7;
+}
+
+#wind-button:focus-visible {
+  outline: 2px solid #0b5fff;
+  outline-offset: 2px;
 }
