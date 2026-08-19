@@ -63,7 +63,11 @@ function stepPhysics(chime: Chime, dt: number, now: number): void {
     chime.angularVelocity *= -0.4;
   }
 
-  chime.hanger.style.transform = `rotate(${chime.angle}rad)`;
+  // CSS rotation is clockwise-positive, which for a top-pivoted hanger
+  // swings the bottom *left* on a positive angle -- the opposite of the
+  // "positive = pushed right" convention the wind force above uses, so the
+  // physics angle is negated only here, at the point it becomes a render.
+  chime.hanger.style.transform = `rotate(${-chime.angle}rad)`;
 
   const crossedThreshold = wasBelowThreshold && Math.abs(chime.angularVelocity) >= RING_VELOCITY;
   const cooldownElapsed = now - chime.lastRungAt > Math.max(0.15, chime.duration * 0.2);
@@ -108,6 +112,11 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
 
   field.addEventListener("pointerdown", (event) => {
     markInteracted();
+    // Captures every later move/up for this pointer to `field`, even once
+    // the cursor leaves it -- otherwise a drag released outside the field's
+    // bounds never fires a pointerup here, and the stale entry left in
+    // `drags` makes every later hover (no button held) look like a drag.
+    field.setPointerCapture(event.pointerId);
     const strummed = new Set<Chime>();
     const initial = chimeAtPoint(chimes, event.clientX, event.clientY);
     if (initial) {
@@ -126,6 +135,12 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
   field.addEventListener("pointermove", (event) => {
     const drag = drags.get(event.pointerId);
     if (!drag) {
+      return;
+    }
+    if (event.buttons === 0) {
+      // The press ended without a pointerup reaching us -- treat it as
+      // over rather than keep raising wind from a pointer that's lifted.
+      drags.delete(event.pointerId);
       return;
     }
     const now = performance.now() / 1000;
@@ -161,6 +176,9 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
 
   const endDrag = (event: PointerEvent): void => {
     drags.delete(event.pointerId);
+    if (field.hasPointerCapture(event.pointerId)) {
+      field.releasePointerCapture(event.pointerId);
+    }
   };
   field.addEventListener("pointerup", endDrag);
   field.addEventListener("pointercancel", endDrag);
