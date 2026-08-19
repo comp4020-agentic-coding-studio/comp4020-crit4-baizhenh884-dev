@@ -43,8 +43,11 @@ function throwGust(): void {
   addGust(dirX === 1 ? 0 : 100, dirX, 0.9);
 }
 
-function ring(chime: Chime): void {
-  playChime(chime.midi, chime.duration);
+// velocity is 0-1: how hard/fast this particular strike was. Taps and key
+// presses have no natural speed to measure, so they default to a firm,
+// deliberate press rather than a soft brush.
+function ring(chime: Chime, velocity = 0.7): void {
+  playChime(chime.midi, chime.duration, velocity, chime.x);
   chime.button.classList.add("ringing");
   window.setTimeout(() => {
     chime.button.classList.remove("ringing");
@@ -54,6 +57,9 @@ function ring(chime: Chime): void {
 // How fast a chime has to be swinging before it counts as "struck" --
 // crossing this is what turns wind (or a strum) into an actual ring.
 const RING_VELOCITY = 1.6;
+// Swing speed, normalized against this, becomes the wind-driven ring's
+// velocity -- floored so a wind-triggered ring is never inaudibly faint.
+const MAX_SWING_VELOCITY = RING_VELOCITY * 3;
 const MAX_ANGLE = 0.5;
 const WIND_FORCE_SCALE = 26;
 
@@ -83,7 +89,8 @@ function stepPhysics(chime: Chime, dt: number, now: number): void {
   const cooldownElapsed = now - chime.lastRungAt > Math.max(0.15, chime.duration * 0.2);
   if (hasInteracted && crossedThreshold && cooldownElapsed) {
     chime.lastRungAt = now;
-    ring(chime);
+    const velocity = Math.max(0.2, Math.min(1, Math.abs(chime.angularVelocity) / MAX_SWING_VELOCITY));
+    ring(chime, velocity);
   }
 }
 
@@ -195,7 +202,7 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
     if (hit && !drag.strummed.has(hit)) {
       drag.strummed.add(hit);
       hit.angularVelocity += drag.dirX * Math.min(2 + instant * 4, 6);
-      ring(hit);
+      ring(hit, Math.max(0.15, instant));
     }
 
     drag.lastX = event.clientX;
