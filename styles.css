@@ -7,10 +7,93 @@ body {
 }
 
 main {
-  max-width: 40rem;
+  max-width: 60rem;
   margin: 0 auto;
 }
 
 a {
   color: #0b5fff;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.chime-field {
+  position: relative;
+  height: min(60vh, 26rem);
+  margin: 3rem 0;
+  border-top: 1px solid #6b6b6b;
+}
+
+#wind-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.chime-hanger {
+  position: absolute;
+  top: 0;
+  left: var(--x);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transform-origin: top center;
+}
+
+.chime-hanger::before {
+  content: "";
+  width: 2px;
+  height: 2rem;
+  background: #6b6b6b;
+}
+
+.chime {
+  width: 1.4rem;
+  height: var(--size);
+  border: none;
+  border-radius: 0.4rem;
+  background: linear-gradient(180deg, #b0b6bd, #7c828a);
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+
+.chime:focus-visible {
+  outline: 2px solid #0b5fff;
+  outline-offset: 2px;
+}
+
+.chime.ringing {
+  filter: brightness(1.4);
+}
+
+@keyframes idle-sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.chime-hanger.idle-sway {
+  animation: idle-sway 4s ease-in-out infinite;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }

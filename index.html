@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>COMP4020 prototype</title>
+    <title>Play the Wind</title>
     <meta
       name="description"
-      content="Replace this with one sentence saying what this page is. A search result and a link preview both show it."
+      content="Play the Wind: a browser wind chime. Tap a chime to ring it, or drag through the gaps to make wind. No wrong notes, no score."
     />
 
     <!--
@@ -27,11 +27,58 @@
       </nav>
     </header>
     <main>
-      <h1>COMP4020 prototype</h1>
-      <p data-testid="intro">
-        Replace this with your prototype. This week's brief is on the course website;
-        <code>spec/README.md</code> explains how the checks in this repo relate to it.
+      <h1>Play the Wind</h1>
+      <p class="sr-only">
+        Play the Wind: a row of hanging chimes tuned to a pentatonic scale.
+        Tap, click, or press a chime's letter key to ring it. Use the sound
+        palette menu to change its mood.
       </p>
+
+      <div class="chime-field">
+        <canvas id="wind-canvas" aria-hidden="true"></canvas>
+
+        <div class="chime-hanger" style="--x: 10%">
+          <button type="button" class="chime" data-midi="60" data-key="a" style="--size: 5.4rem" aria-label="Chime, note C4, key A"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 18%">
+          <button type="button" class="chime" data-midi="62" data-key="b" style="--size: 4.9rem" aria-label="Chime, note D4, key B"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 26%">
+          <button type="button" class="chime" data-midi="64" data-key="c" style="--size: 4.4rem" aria-label="Chime, note E4, key C"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 34%">
+          <button type="button" class="chime" data-midi="67" data-key="d" style="--size: 3.9rem" aria-label="Chime, note G4, key D"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 42%">
+          <button type="button" class="chime" data-midi="69" data-key="e" style="--size: 3.4rem" aria-label="Chime, note A4, key E"></button>
+        </div>
+        <div class="chime-hanger idle-sway" style="--x: 50%">
+          <button type="button" class="chime" data-midi="72" data-key="f" style="--size: 2.9rem" aria-label="Chime, note C5, key F"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 58%">
+          <button type="button" class="chime" data-midi="74" data-key="g" style="--size: 2.6rem" aria-label="Chime, note D5, key G"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 66%">
+          <button type="button" class="chime" data-midi="76" data-key="h" style="--size: 2.3rem" aria-label="Chime, note E5, key H"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 74%">
+          <button type="button" class="chime" data-midi="79" data-key="i" style="--size: 2.0rem" aria-label="Chime, note G5, key I"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 82%">
+          <button type="button" class="chime" data-midi="81" data-key="j" style="--size: 1.8rem" aria-label="Chime, note A5, key J"></button>
+        </div>
+        <div class="chime-hanger" style="--x: 90%">
+          <button type="button" class="chime" data-midi="84" data-key="k" style="--size: 1.6rem" aria-label="Chime, note C6, key K"></button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label for="palette">Sound palette</label>
+        <select id="palette" name="palette">
+          <option value="dusk" selected>Dusk (mellow)</option>
+          <option value="bright">Bright</option>
+        </select>
+      </div>
     </main>
     <script type="module" src="./main.ts"></script>
   </body>
