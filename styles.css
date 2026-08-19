@@ -32,6 +32,11 @@ a {
   height: min(60vh, 26rem);
   margin: 3rem 0;
   border-top: 1px solid #6b6b6b;
+  /* This area's own drag gesture is the wind -- don't let the browser
+     interpret it as a page scroll or text selection on touch. */
+  touch-action: none;
+  user-select: none;
+  cursor: grab;
 }
 
 #wind-canvas {
@@ -76,20 +81,6 @@ a {
 
 .chime.ringing {
   filter: brightness(1.4);
-}
-
-@keyframes idle-sway {
-  0%,
-  100% {
-    transform: rotate(-4deg);
-  }
-  50% {
-    transform: rotate(4deg);
-  }
-}
-
-.chime-hanger.idle-sway {
-  animation: idle-sway 4s ease-in-out infinite;
 }
 
 .controls {
