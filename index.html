@@ -30,17 +30,18 @@
       <h1>Play the Wind</h1>
       <p class="sr-only">
         Play the Wind: a row of paper-tagged fūrin wind chimes hanging under
-        a garden eave at dusk, tuned to an ascending major scale. Press and
-        drag through them, or the gaps beside them, to raise wind and hear
-        them ring on their own. You can also tap, click, or press a chime's
-        letter key -- printed on the paper tag below it -- to ring one
-        directly. The Wind button or the spacebar throws a single gust
-        across the whole field, and arrow keys raise wind from either side.
-        Press Q, W, or E, or click a material button, to change the chimes'
-        material. Use the sound palette menu to change its mood.
+        a wooden eave against a bright summer sky, tuned to an ascending
+        major scale. Press and drag through them, or the gaps beside them,
+        to raise wind and hear them ring on their own. You can also tap,
+        click, or press a chime's letter key -- printed on the paper tag
+        below it -- to ring one directly. The Wind button or the spacebar
+        throws a single gust across the whole field, and arrow keys raise
+        wind from either side. Press Q, W, or E, or click a material
+        button, to change the chimes' material. Use the sound palette menu
+        to change its mood.
       </p>
 
-      <div class="chime-field" data-material="metal">
+      <div class="chime-field" data-material="glass">
         <svg class="bell-defs" width="0" height="0" aria-hidden="true">
           <defs>
             <linearGradient id="glassGradient" x1="0" y1="0" x2="1" y2="1">
@@ -61,10 +62,10 @@
           </defs>
         </svg>
 
-        <div class="garden-backdrop" aria-hidden="true">
-          <div class="garden-sky"></div>
-          <div class="garden-glow"></div>
-          <div class="garden-foliage"></div>
+        <div class="sky-backdrop" aria-hidden="true">
+          <div class="sky-gradient"></div>
+          <div class="sky-clouds-far"></div>
+          <div class="sky-clouds-near"></div>
         </div>
         <canvas id="wind-canvas" aria-hidden="true"></canvas>
         <div class="eave" aria-hidden="true"></div>
@@ -240,9 +241,9 @@
         <button type="button" id="wind-button" aria-label="Throw a gust of wind, key Space">Wind <span class="key-hint">space</span></button>
         <span class="controls-label" id="material-label">Material</span>
         <div class="material-select" role="group" aria-labelledby="material-label">
-          <button type="button" class="material-option active" data-material="metal" aria-pressed="true">Metal <span class="key-hint">Q</span></button>
+          <button type="button" class="material-option" data-material="metal" aria-pressed="false">Metal <span class="key-hint">Q</span></button>
           <button type="button" class="material-option" data-material="bamboo" aria-pressed="false">Bamboo <span class="key-hint">W</span></button>
-          <button type="button" class="material-option" data-material="glass" aria-pressed="false">Glass <span class="key-hint">E</span></button>
+          <button type="button" class="material-option active" data-material="glass" aria-pressed="true">Glass <span class="key-hint">E</span></button>
         </div>
         <label for="palette">Sound palette</label>
         <select id="palette" name="palette">

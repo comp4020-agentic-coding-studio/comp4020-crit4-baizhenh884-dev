@@ -133,9 +133,11 @@ function createGustVisual(): GustVisual {
 // lines and a gentle one gets fewer, shorter, softer ones.
 function drawGust(ctx: CanvasRenderingContext2D, visual: GustVisual, trace: GustTrace, width: number, height: number, ratio: number, now: number): void {
   const anchorX = (trace.x / 100) * width;
-  const anchorY = height * 0.4;
-  const baseLength = (70 + trace.intensity * 170) * ratio;
-  const spanRadius = (14 + trace.intensity * 22) * ratio;
+  // Lower in the field, in the open space below the hanging chimes, rather
+  // than crossing through the bells themselves.
+  const anchorY = height * 0.74;
+  const baseLength = (140 + trace.intensity * 320) * ratio;
+  const spanRadius = (24 + trace.intensity * 40) * ratio;
 
   const lineCount = Math.max(2, Math.min(MAX_GUST_LINES, Math.round(2 + trace.intensity * 3)));
   const leafCount = trace.intensity > 0.55 ? MAX_GUST_LEAVES : trace.intensity > 0.18 ? 1 : 0;
@@ -154,7 +156,7 @@ function drawGust(ctx: CanvasRenderingContext2D, visual: GustVisual, trace: Gust
     const ctrlX = anchorX - trace.dirX * length * 0.5;
     const ctrlY = anchorY + perpOffset * 0.5 - line.curveAmount * spanRadius + flutter;
 
-    drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, (1.1 + trace.intensity * 2.2) * ratio * line.thicknessScale, lineAlpha);
+    drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, (1.6 + trace.intensity * 3.2) * ratio * line.thicknessScale, lineAlpha);
   }
 
   for (let i = 0; i < leafCount; i++) {

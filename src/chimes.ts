@@ -355,6 +355,11 @@ export function initChimes(root: HTMLElement): void {
       applyMaterial(button.dataset.material as "metal" | "bamboo" | "glass");
     });
   }
+  // Syncs audio.ts's own default (always "metal") to whatever material the
+  // markup actually starts on, so the first strike's sound matches the
+  // bells already drawn on screen. Doesn't call markInteracted -- this
+  // isn't a user gesture, just settling initial state.
+  applyMaterial((field.dataset.material as "metal" | "bamboo" | "glass") || "metal");
 
   window.addEventListener("keydown", (event) => {
     if (event.repeat || event.target instanceof HTMLSelectElement) {
