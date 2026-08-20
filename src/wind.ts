@@ -1,4 +1,5 @@
 interface Gust {
+  id: number;
   x: number;
   dirX: number;
   strength: number;
@@ -6,6 +7,10 @@ interface Gust {
 }
 
 const gusts: Gust[] = [];
+
+// Lets the visual layer track a gust across frames (e.g. to keep its
+// swoosh/leaf shapes stable instead of re-randomizing them every draw).
+let nextGustId = 1;
 
 // How fast a gust's push travels across the field (in field-percent per
 // second), how long it takes to fade, and how far its push spreads from its
@@ -18,6 +23,7 @@ const SPREAD = 10;
 
 export function addGust(x: number, dirX: number, strength: number): void {
   gusts.push({
+    id: nextGustId++,
     x,
     dirX: dirX || 1,
     strength: Math.min(strength, 1),
@@ -50,6 +56,7 @@ export function windForceAt(xPercent: number, now: number): number {
 }
 
 export interface GustTrace {
+  id: number;
   x: number;
   dirX: number;
   intensity: number;
@@ -63,6 +70,7 @@ export function gustTraces(now: number): GustTrace[] {
   return gusts.map((gust) => {
     const elapsed = now - gust.createdAt;
     return {
+      id: gust.id,
       x: gust.x + gust.dirX * TRAVEL_SPEED * elapsed,
       dirX: gust.dirX,
       intensity: gust.strength * Math.exp(-elapsed / DECAY_SECONDS),
