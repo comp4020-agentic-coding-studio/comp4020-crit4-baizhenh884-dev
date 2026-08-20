@@ -27,65 +27,46 @@ function drawLeaf(ctx: CanvasRenderingContext2D, x: number, y: number, size: num
   ctx.restore();
 }
 
-// A soft, scalloped cloud-puff -- a cluster of overlapping translucent lobes
-// plus a core circle, rather than one plain circle, so it reads as the
-// bumpy hand-drawn cloud shape a gust leads with instead of a glowing dot.
-function drawPuff(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, alpha: number): void {
-  ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.fillStyle = "rgba(255, 248, 232, 0.55)";
-  ctx.strokeStyle = "rgba(255, 244, 214, 0.5)";
-  ctx.lineWidth = Math.max(1, radius * 0.06);
-  const lobes = 6;
-  for (let i = 0; i < lobes; i++) {
-    const angle = (i / lobes) * Math.PI * 2;
-    const lobeRadius = radius * (0.4 + 0.18 * Math.sin(i * 1.7 + 1));
-    const lx = x + Math.cos(angle) * radius * 0.5;
-    const ly = y + Math.sin(angle) * radius * 0.32;
-    ctx.beginPath();
-    ctx.arc(lx, ly, lobeRadius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-  }
-  ctx.beginPath();
-  ctx.arc(x, y, radius * 0.55, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
-}
-
-// One curved swoosh trailing behind the puff (opposite the travel
-// direction), bowed via a quadratic control point so it reads as a sweep
-// rather than a straight streak.
-function drawSwoosh(
+// A single curved "swoosh" -- a motion-line arc that's thin at both ends
+// and thickest in the middle, drawn as short segments along a quadratic
+// curve so the taper and per-segment fade can vary smoothly along its
+// length, rather than one uniform-width stroke.
+function drawSwooshLine(
   ctx: CanvasRenderingContext2D,
-  puffX: number,
-  puffY: number,
-  dirX: number,
-  length: number,
-  perpOffset: number,
-  curveAmount: number,
-  thickness: number,
+  startX: number,
+  startY: number,
+  ctrlX: number,
+  ctrlY: number,
+  endX: number,
+  endY: number,
+  maxThickness: number,
   alpha: number,
 ): void {
-  const startX = puffX - dirX * length * 0.1;
-  const startY = puffY + perpOffset * 0.15;
-  const midX = puffX - dirX * length * 0.5;
-  const midY = puffY + perpOffset * 0.4 - curveAmount;
-  const endX = puffX - dirX * length;
-  const endY = puffY + perpOffset;
-
+  const segments = 14;
   ctx.save();
-  ctx.globalAlpha = alpha;
-  ctx.shadowColor = "rgba(255, 230, 180, 0.5)";
-  ctx.shadowBlur = thickness * 1.4;
-  ctx.strokeStyle = "rgba(255, 244, 218, 0.65)";
-  ctx.lineWidth = thickness;
   ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(startX, startY);
-  ctx.quadraticCurveTo(midX, midY, endX, endY);
-  ctx.stroke();
+  ctx.shadowColor = "rgba(255, 230, 180, 0.4)";
+  ctx.shadowBlur = maxThickness * 1.1;
+  ctx.strokeStyle = "rgba(255, 244, 218, 0.75)";
+
+  let prevX = startX;
+  let prevY = startY;
+  for (let i = 1; i <= segments; i++) {
+    const t = i / segments;
+    const oneMinusT = 1 - t;
+    const x = oneMinusT * oneMinusT * startX + 2 * oneMinusT * t * ctrlX + t * t * endX;
+    const y = oneMinusT * oneMinusT * startY + 2 * oneMinusT * t * ctrlY + t * t * endY;
+    const taper = Math.sin(Math.PI * t);
+
+    ctx.globalAlpha = alpha * (0.25 + 0.75 * taper);
+    ctx.lineWidth = Math.max(0.4, maxThickness * taper);
+    ctx.beginPath();
+    ctx.moveTo(prevX, prevY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    prevX = x;
+    prevY = y;
+  }
   ctx.restore();
 }
 
@@ -94,6 +75,8 @@ interface SwooshLine {
   curveAmount: number;
   lengthScale: number;
   thicknessScale: number;
+  flutterSpeed: number;
+  flutterPhase: number;
 }
 
 interface GustLeaf {
@@ -112,27 +95,29 @@ interface GustVisual {
   leaves: GustLeaf[];
 }
 
-const MAX_GUST_LINES = 6;
-const MAX_GUST_LEAVES = 4;
+const MAX_GUST_LINES = 5;
+const MAX_GUST_LEAVES = 2;
 
 function createGustVisual(): GustVisual {
   const lines: SwooshLine[] = [];
   for (let i = 0; i < MAX_GUST_LINES; i++) {
     lines.push({
-      perpOffset: (Math.random() - 0.5) * 0.9,
-      curveAmount: 0.25 + Math.random() * 0.45,
-      lengthScale: 0.7 + Math.random() * 0.6,
-      thicknessScale: 0.55 + Math.random() * 0.8,
+      perpOffset: (Math.random() - 0.5) * 0.7,
+      curveAmount: 0.2 + Math.random() * 0.35,
+      lengthScale: 0.75 + Math.random() * 0.5,
+      thicknessScale: 0.6 + Math.random() * 0.7,
+      flutterSpeed: 1 + Math.random() * 1.5,
+      flutterPhase: Math.random() * Math.PI * 2,
     });
   }
   const leaves: GustLeaf[] = [];
   for (let i = 0; i < MAX_GUST_LEAVES; i++) {
     leaves.push({
       perpOffset: (Math.random() - 0.5) * 0.8,
-      lagFraction: 0.15 + Math.random() * 0.7,
+      lagFraction: 0.2 + Math.random() * 0.6,
       spinSpeed: 2 + Math.random() * 4,
       spinPhase: Math.random() * Math.PI * 2,
-      size: 0.7 + Math.random() * 0.6,
+      size: 0.7 + Math.random() * 0.5,
       colorIndex: Math.floor(Math.random() * LEAF_COLORS.length),
       wobbleSpeed: 1 + Math.random() * 2,
       wobblePhase: Math.random() * Math.PI * 2,
@@ -141,86 +126,87 @@ function createGustVisual(): GustVisual {
   return { lines, leaves };
 }
 
-// Draws one gust as an illustrated puff of wind: a scalloped cloud-puff at
-// the leading edge, several curved swooshes trailing behind it, and a
-// handful of leaves caught along those swooshes, tumbling as they travel.
-// Everything scales with the gust's current intensity, so a strong gust
-// reads as a bigger, busier gust and a fading one visibly thins out.
+// Draws one gust as a handful of curved motion-lines sweeping across the
+// field in its travel direction, thin and tapered at both ends -- no cloud
+// or puff shape, the lines alone carry the gust. Everything scales with
+// the gust's current intensity: a strong gust gets more, longer, busier
+// lines and a gentle one gets fewer, shorter, softer ones.
 function drawGust(ctx: CanvasRenderingContext2D, visual: GustVisual, trace: GustTrace, width: number, height: number, ratio: number, now: number): void {
-  const puffX = (trace.x / 100) * width;
-  const puffY = height * 0.4;
-  const puffRadius = (12 + trace.intensity * 26) * ratio;
-  const baseLength = (60 + trace.intensity * 150) * ratio;
-  const spin = 0.6 + trace.intensity;
+  const anchorX = (trace.x / 100) * width;
+  const anchorY = height * 0.4;
+  const baseLength = (70 + trace.intensity * 170) * ratio;
+  const spanRadius = (14 + trace.intensity * 22) * ratio;
 
-  const lineCount = Math.max(2, Math.round(2 + trace.intensity * (MAX_GUST_LINES - 2)));
-  const leafCount = Math.max(1, Math.round(1 + trace.intensity * (MAX_GUST_LEAVES - 1)));
-  const lineAlpha = Math.min(0.55, 0.15 + trace.intensity * 0.55);
+  const lineCount = Math.max(2, Math.min(MAX_GUST_LINES, Math.round(2 + trace.intensity * 3)));
+  const leafCount = trace.intensity > 0.55 ? MAX_GUST_LEAVES : trace.intensity > 0.18 ? 1 : 0;
+  const lineAlpha = Math.min(0.6, 0.18 + trace.intensity * 0.6);
 
   for (let i = 0; i < lineCount; i++) {
     const line = visual.lines[i];
-    drawSwoosh(
-      ctx,
-      puffX,
-      puffY,
-      trace.dirX,
-      baseLength * line.lengthScale,
-      line.perpOffset * puffRadius * 1.6,
-      line.curveAmount * puffRadius,
-      (1.3 + trace.intensity * 2) * ratio * line.thicknessScale,
-      lineAlpha,
-    );
-  }
+    const length = baseLength * line.lengthScale;
+    const perpOffset = line.perpOffset * spanRadius;
+    const flutter = Math.sin(now * line.flutterSpeed * (0.6 + trace.intensity) + line.flutterPhase) * spanRadius * 0.25;
 
-  drawPuff(ctx, puffX, puffY, puffRadius, Math.min(0.8, 0.3 + trace.intensity * 0.6));
+    const startX = anchorX + trace.dirX * length * 0.06;
+    const startY = anchorY + perpOffset * 0.2;
+    const endX = anchorX - trace.dirX * length * 0.94;
+    const endY = anchorY + perpOffset;
+    const ctrlX = anchorX - trace.dirX * length * 0.5;
+    const ctrlY = anchorY + perpOffset * 0.5 - line.curveAmount * spanRadius + flutter;
+
+    drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, (1.1 + trace.intensity * 2.2) * ratio * line.thicknessScale, lineAlpha);
+  }
 
   for (let i = 0; i < leafCount; i++) {
     const leaf = visual.leaves[i];
     const lagDistance = baseLength * leaf.lagFraction;
-    const leafX = puffX - trace.dirX * lagDistance;
-    const leafY = puffY + leaf.perpOffset * puffRadius * 1.8 + Math.sin(now * leaf.wobbleSpeed + leaf.wobblePhase) * puffRadius * 0.35;
-    const angle = now * leaf.spinSpeed * spin + leaf.spinPhase;
-    const size = (4.5 + trace.intensity * 5.5) * leaf.size * ratio;
-    drawLeaf(ctx, leafX, leafY, size, angle, leaf.colorIndex, Math.min(0.85, 0.35 + trace.intensity * 0.5));
+    const leafX = anchorX - trace.dirX * lagDistance;
+    const leafY = anchorY + leaf.perpOffset * spanRadius + Math.sin(now * leaf.wobbleSpeed + leaf.wobblePhase) * spanRadius * 0.35;
+    const angle = now * leaf.spinSpeed * (0.6 + trace.intensity) + leaf.spinPhase;
+    const size = (3.5 + trace.intensity * 4) * leaf.size * ratio;
+    drawLeaf(ctx, leafX, leafY, size, angle, leaf.colorIndex, Math.min(0.75, 0.3 + trace.intensity * 0.45));
   }
 }
 
-// A handful of faint leaves drifting slowly across the field at all times --
+// A couple of very faint, slowly drifting curved lines at all times --
 // purely decorative (no audio, nothing gated on user interaction), so the
 // scene keeps breathing even before anyone has touched it, without ever
-// risking the silent-on-load rule.
-interface IdleLeaf {
+// risking the silent-on-load rule. Same shape language as an active gust's
+// swooshes, just far softer and slower.
+interface IdleLine {
   seedX: number;
   seedY: number;
   driftSpeed: number;
   driftDir: number;
+  length: number;
+  curveAmount: number;
+  perpTilt: number;
   bobSpeed: number;
   bobAmount: number;
   phase: number;
-  spinSpeed: number;
-  size: number;
-  colorIndex: number;
+  thickness: number;
 }
 
-const IDLE_LEAF_COUNT = 7;
+const IDLE_LINE_COUNT = 3;
 
-function createIdleLeaves(): IdleLeaf[] {
-  const leaves: IdleLeaf[] = [];
-  for (let i = 0; i < IDLE_LEAF_COUNT; i++) {
-    leaves.push({
+function createIdleLines(): IdleLine[] {
+  const lines: IdleLine[] = [];
+  for (let i = 0; i < IDLE_LINE_COUNT; i++) {
+    lines.push({
       seedX: Math.random(),
       seedY: 0.2 + Math.random() * 0.55,
-      driftSpeed: 0.01 + Math.random() * 0.014,
+      driftSpeed: 0.008 + Math.random() * 0.012,
       driftDir: Math.random() < 0.5 ? -1 : 1,
-      bobSpeed: 0.15 + Math.random() * 0.2,
+      length: 0.1 + Math.random() * 0.08,
+      curveAmount: 0.25 + Math.random() * 0.4,
+      perpTilt: (Math.random() - 0.5) * 0.6,
+      bobSpeed: 0.12 + Math.random() * 0.18,
       bobAmount: 0.02 + Math.random() * 0.03,
       phase: Math.random() * Math.PI * 2,
-      spinSpeed: 0.3 + Math.random() * 0.5,
-      size: 3.5 + Math.random() * 2.5,
-      colorIndex: Math.floor(Math.random() * LEAF_COLORS.length),
+      thickness: 1.2 + Math.random() * 1,
     });
   }
-  return leaves;
+  return lines;
 }
 
 export function initWindVisuals(field: HTMLElement, canvas: HTMLCanvasElement): void {
@@ -229,7 +215,7 @@ export function initWindVisuals(field: HTMLElement, canvas: HTMLCanvasElement): 
     return;
   }
 
-  const idleLeaves = createIdleLeaves();
+  const idleLines = createIdleLines();
   const gustVisuals = new Map<number, GustVisual>();
 
   function resize(): void {
@@ -248,12 +234,21 @@ export function initWindVisuals(field: HTMLElement, canvas: HTMLCanvasElement): 
     const ratio = window.devicePixelRatio || 1;
     ctx.clearRect(0, 0, width, height);
 
-    for (const leaf of idleLeaves) {
-      const x = (((leaf.seedX + now * leaf.driftSpeed * leaf.driftDir) % 1) * width + width) % width;
-      const y = (leaf.seedY + Math.sin(now * leaf.bobSpeed + leaf.phase) * leaf.bobAmount) * height;
-      const angle = now * leaf.spinSpeed + leaf.phase;
-      const flicker = 0.25 + 0.12 * Math.sin(now * leaf.bobSpeed * 1.6 + leaf.phase);
-      drawLeaf(ctx, x, y, leaf.size * ratio, angle, leaf.colorIndex, flicker);
+    for (const line of idleLines) {
+      const centerX = (((line.seedX + now * line.driftSpeed * line.driftDir) % 1) * width + width) % width;
+      const centerY = (line.seedY + Math.sin(now * line.bobSpeed + line.phase) * line.bobAmount) * height;
+      const length = line.length * width;
+      const perpOffset = line.perpTilt * length * 0.3;
+      const flicker = 0.06 + 0.04 * Math.sin(now * line.bobSpeed * 1.5 + line.phase);
+
+      const startX = centerX + (length / 2) * line.driftDir;
+      const startY = centerY + perpOffset * 0.2;
+      const endX = centerX - (length / 2) * line.driftDir;
+      const endY = centerY + perpOffset;
+      const ctrlX = centerX;
+      const ctrlY = centerY + perpOffset * 0.5 - line.curveAmount * length * 0.25;
+
+      drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, line.thickness * ratio, flicker);
     }
 
     const traces = gustTraces(now);
