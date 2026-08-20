@@ -93,6 +93,10 @@ function stepPhysics(chime: Chime, dt: number, now: number): void {
   // "positive = pushed right" convention the wind force above uses, so the
   // physics angle is negated only here, at the point it becomes a render.
   chime.hanger.style.transform = `rotate(${-chime.angle}rad)`;
+  // Feeds the tanzaku's CSS flutter animation (styles.css) -- widening its
+  // sway while real wind is passing through this chime's position, on top
+  // of the small idle wobble it already does at --wind-intensity: 0.
+  chime.hanger.style.setProperty("--wind-intensity", String(Math.min(1, Math.abs(wind) / WIND_FORCE_SCALE)));
 
   const crossedThreshold = wasBelowThreshold && Math.abs(chime.angularVelocity) >= RING_VELOCITY;
   const cooldownElapsed = now - chime.lastRungAt > Math.max(0.15, chime.duration * 0.2);
@@ -138,9 +142,9 @@ function chimeAtPoint(chimes: Chime[], clientX: number, clientY: number): Chime 
 // full strength (and, using the same filter, how long it takes to ease back
 // off) -- the "a bit of inertia" feel, and why a strong gust needs a longer
 // drag rather than one fast swipe.
-const MIN_PUSH_SPEED = 300;
+const MIN_PUSH_SPEED = 380;
 const MAX_PUSH_SPEED = 2000;
-const WIND_RAMP_SECONDS = 0.55;
+const WIND_RAMP_SECONDS = 0.85;
 const WIND_BUILD_FLOOR = 0.05;
 
 // A strum's speed normalizes over its own, much lower range -- contact with
@@ -162,6 +166,7 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
     // blue/white selection highlight as the pointer moves.
     event.preventDefault();
     markInteracted();
+    field.classList.add("dragging");
     // Captures every later move/up for this pointer to `field`, even once
     // the cursor leaves it -- otherwise a drag released outside the field's
     // bounds never fires a pointerup here, and the stale entry left in
@@ -243,6 +248,9 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
 
   const endDrag = (event: PointerEvent): void => {
     drags.delete(event.pointerId);
+    if (drags.size === 0) {
+      field.classList.remove("dragging");
+    }
     if (field.hasPointerCapture(event.pointerId)) {
       field.releasePointerCapture(event.pointerId);
     }
@@ -332,6 +340,9 @@ export function initChimes(root: HTMLElement): void {
   const materialButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-material]"));
   function applyMaterial(key: "metal" | "bamboo" | "glass"): void {
     setMaterial(key);
+    // Non-null: `field` was checked above, but TS doesn't carry that
+    // narrowing into a nested function declaration.
+    field!.dataset.material = key;
     for (const button of materialButtons) {
       const active = button.dataset.material === key;
       button.classList.toggle("active", active);
