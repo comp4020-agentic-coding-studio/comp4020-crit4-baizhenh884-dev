@@ -157,6 +157,10 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
   const drags = new Map<number, Drag>();
 
   field.addEventListener("pointerdown", (event) => {
+    // Without this, a mouse drag across the field is also the browser's
+    // built-in "select text/elements" gesture, which paints a flashing
+    // blue/white selection highlight as the pointer moves.
+    event.preventDefault();
     markInteracted();
     // Captures every later move/up for this pointer to `field`, even once
     // the cursor leaves it -- otherwise a drag released outside the field's
@@ -190,6 +194,7 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
       drags.delete(event.pointerId);
       return;
     }
+    event.preventDefault();
     const now = performance.now() / 1000;
     const dt = now - drag.lastTime;
     if (dt < 0.016) {
@@ -305,14 +310,27 @@ export function initChimes(root: HTMLElement): void {
     }
   }
 
+  // Left/Right pick the gust's direction; Up/Down pick its strength,
+  // reusing whichever direction was last chosen -- so the arrows together
+  // shape the wind deliberately, unlike Space's random surprise gust.
+  let arrowDirX = 1;
+
   window.addEventListener("keydown", (event) => {
     if (event.repeat || event.target instanceof HTMLSelectElement) {
       return;
     }
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
       markInteracted();
-      const dirX = event.key === "ArrowRight" ? 1 : -1;
-      addGust(dirX === 1 ? 0 : 100, dirX, 0.7);
+      arrowDirX = event.key === "ArrowRight" ? 1 : -1;
+      addGust(arrowDirX === 1 ? 0 : 100, arrowDirX, 0.7);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      markInteracted();
+      const strength = event.key === "ArrowUp" ? 0.95 : 0.25;
+      addGust(arrowDirX === 1 ? 0 : 100, arrowDirX, strength);
       return;
     }
     // Space throws a gust, same as the Wind button -- but not when a button
