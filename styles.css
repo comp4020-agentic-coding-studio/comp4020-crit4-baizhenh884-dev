@@ -8,7 +8,7 @@ body {
 }
 
 main {
-  max-width: min(1300px, 90vw);
+  max-width: min(1600px, 96vw);
   margin: 0 auto;
 }
 
@@ -104,34 +104,6 @@ a {
     radial-gradient(circle at 87% 64%, #fff 0 10%, transparent 11%);
 }
 
-/* A soft, out-of-focus garden silhouette hugging the bottom edge -- foliage,
-   leaves and a couple of branch-like wedges in muted greens, heavily
-   blurred so it reads as distant depth behind the chimes rather than a
-   sharp foreground layer, and fills what would otherwise be empty sky
-   below the row of fūrin.
-
-   Positions below are in this element's OWN box, which (via inset: -10%)
-   is 20% taller than the visible .sky-backdrop it sits in -- so the
-   visible window maps to roughly 8.3%-91.7% of this box, not 0%-100%.
-   Centres above ~92% land in the clipped overscan and never render at
-   all, which is what silently broke this layer the first time. Keep
-   every centre at or below ~92% so it stays visible, hugging the true
-   bottom edge. */
-.garden-silhouette {
-  position: absolute;
-  inset: -10%;
-  filter: blur(7px);
-  opacity: 0.85;
-  background:
-    radial-gradient(ellipse 26% 36% at 4% 88%, rgba(58, 92, 54, 0.75), transparent 70%),
-    radial-gradient(ellipse 30% 40% at 20% 91%, rgba(70, 108, 60, 0.7), transparent 70%),
-    radial-gradient(ellipse 24% 32% at 38% 86%, rgba(52, 84, 48, 0.65), transparent 70%),
-    radial-gradient(ellipse 34% 38% at 58% 92%, rgba(66, 100, 56, 0.7), transparent 70%),
-    radial-gradient(ellipse 28% 34% at 78% 87%, rgba(56, 90, 52, 0.65), transparent 70%),
-    radial-gradient(ellipse 30% 40% at 96% 91%, rgba(64, 98, 58, 0.7), transparent 70%),
-    linear-gradient(180deg, transparent 76%, rgba(48, 74, 46, 0.35) 100%);
-}
-
 #wind-canvas {
   position: absolute;
   inset: 0;
@@ -201,15 +173,12 @@ a {
 }
 
 /* Longer than a real cord's proportions would need -- deliberately, so the
-   row of chimes hangs down into the upper-middle of the field instead of
-   clustering near the eave. The field grew taller in the previous pass
-   without this growing to match, which is why it still read as clustered
-   at the top -- this needs to scale with .chime-field's height, not just
-   be "longer" in isolation. */
+   row of chimes hangs low into the field, filling the lower half of the
+   scene themselves now that the foliage layer is gone. */
 .chime-hanger::before {
   content: "";
   width: 1.5px;
-  height: 9rem;
+  height: 13rem;
   background: linear-gradient(180deg, rgba(240, 230, 210, 0.85), rgba(180, 165, 140, 0.6));
 }
 
