@@ -165,28 +165,30 @@ const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
     fundamentalGain: 1,
     strikeAttackSeconds: 0.006,
   },
-  // Bright, pure, crisp: a sharp high ping right at the onset, then a clean,
-  // higher-shimmer bell tone -- more upper partials than before and a
-  // quieter fundamental so the voice leans on its shimmer instead of its low
-  // end, with less reverb warmth so it stays glassy and direct, not soft.
+  // Bright, pure, piercing: an even sharper, higher ping right at the onset,
+  // a sixth, very-high partial added purely for shimmer, a quieter
+  // fundamental so the voice leans harder into that shimmer, and still less
+  // reverb send so it cuts through clean and direct rather than blooming --
+  // deliberately the crispest of the three.
   glass: {
     partials: [
-      { ratio: 1, amp: 1, decayMult: 0.85 },
-      { ratio: 2.0, amp: 0.36, decayMult: 0.5 },
-      { ratio: 3.76, amp: 0.22, decayMult: 0.36 },
-      { ratio: 5.0, amp: 0.13, decayMult: 0.26 },
-      { ratio: 7.0, amp: 0.06, decayMult: 0.16 },
+      { ratio: 1, amp: 1, decayMult: 0.8 },
+      { ratio: 2.0, amp: 0.4, decayMult: 0.46 },
+      { ratio: 3.76, amp: 0.26, decayMult: 0.32 },
+      { ratio: 5.0, amp: 0.17, decayMult: 0.22 },
+      { ratio: 7.0, amp: 0.1, decayMult: 0.14 },
+      { ratio: 9.2, amp: 0.05, decayMult: 0.09 },
     ],
     decayScale: 1.05,
-    strikeFilterFreq: 7800,
-    strikeFilterQ: 1.6,
+    strikeFilterFreq: 9500,
+    strikeFilterQ: 2.2,
     strikeGainMult: 1,
-    voiceFilterFreq: 15000,
-    reverbSendMult: 0.55,
-    detuneCents: 2.2,
-    brightnessBase: 0.78,
-    fundamentalGain: 0.85,
-    strikeAttackSeconds: 0.003,
+    voiceFilterFreq: 18000,
+    reverbSendMult: 0.35,
+    detuneCents: 2.6,
+    brightnessBase: 0.92,
+    fundamentalGain: 0.78,
+    strikeAttackSeconds: 0.0018,
   },
 };
 
