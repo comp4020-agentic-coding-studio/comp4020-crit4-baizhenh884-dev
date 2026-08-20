@@ -34,13 +34,19 @@ function markInteracted(): void {
   hasInteracted = true;
 }
 
-// A single throw: one gust, sweeping the whole field from a random side --
-// not a toggle, so pressing the Wind button or spacebar again just throws
-// another one.
+// A single throw: one gust, sweeping the whole field from a random side, at
+// a random strength -- not a toggle, so pressing the Wind button or
+// spacebar again just throws another one. Strength is spread wide (a
+// gentle breeze to a strong gust) rather than narrow, since it's what
+// drives how loud/bright and how many chimes each throw sets ringing.
+const MIN_GUST_STRENGTH = 0.25;
+const MAX_GUST_STRENGTH = 1;
+
 function throwGust(): void {
   markInteracted();
   const dirX = Math.random() < 0.5 ? -1 : 1;
-  addGust(dirX === 1 ? 0 : 100, dirX, 0.9);
+  const strength = MIN_GUST_STRENGTH + Math.random() * (MAX_GUST_STRENGTH - MIN_GUST_STRENGTH);
+  addGust(dirX === 1 ? 0 : 100, dirX, strength);
 }
 
 // velocity is 0-1: how hard/fast this particular strike was. Taps and key
