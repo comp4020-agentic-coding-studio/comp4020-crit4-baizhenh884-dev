@@ -34,8 +34,9 @@
         raise wind and hear them ring on their own. You can also tap, click,
         or press a chime's letter key to ring one directly. The Wind button
         or the spacebar throws a single gust across the whole field, and
-        arrow keys raise wind from either side. Press Q, W, or E to change
-        the chimes' material. Use the sound palette menu to change its mood.
+        arrow keys raise wind from either side. Press Q, W, or E, or click a
+        material button, to change the chimes' material. Use the sound
+        palette menu to change its mood.
       </p>
 
       <div class="chime-field">
@@ -89,6 +90,12 @@
 
       <div class="controls">
         <button type="button" id="wind-button" aria-label="Throw a gust of wind">Wind</button>
+        <span class="controls-label" id="material-label">Material</span>
+        <div class="material-select" role="group" aria-labelledby="material-label">
+          <button type="button" class="material-option active" data-material="metal" aria-pressed="true">Metal <span class="key-hint">Q</span></button>
+          <button type="button" class="material-option" data-material="bamboo" aria-pressed="false">Bamboo <span class="key-hint">W</span></button>
+          <button type="button" class="material-option" data-material="glass" aria-pressed="false">Glass <span class="key-hint">E</span></button>
+        </div>
         <label for="palette">Sound palette</label>
         <select id="palette" name="palette">
           <option value="dusk" selected>Dusk (mellow)</option>

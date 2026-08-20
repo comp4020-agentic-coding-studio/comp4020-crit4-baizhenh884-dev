@@ -115,3 +115,42 @@ a {
   outline: 2px solid #0b5fff;
   outline-offset: 2px;
 }
+
+.controls-label {
+  font-size: 0.95rem;
+}
+
+.material-select {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.material-option {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #6b6b6b;
+  border-radius: 0.4rem;
+  background: #eceff2;
+  cursor: pointer;
+  font: inherit;
+}
+
+.material-option:hover {
+  background: #dfe3e7;
+}
+
+.material-option:focus-visible {
+  outline: 2px solid #0b5fff;
+  outline-offset: 2px;
+}
+
+.material-option.active {
+  background: #0b5fff;
+  border-color: #0b5fff;
+  color: #fff;
+}
+
+.material-option .key-hint {
+  margin-left: 0.3rem;
+  font-size: 0.75rem;
+  opacity: 0.75;
+}

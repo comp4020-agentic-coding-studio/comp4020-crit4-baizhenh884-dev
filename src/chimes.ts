@@ -315,6 +315,26 @@ export function initChimes(root: HTMLElement): void {
   // shape the wind deliberately, unlike Space's random surprise gust.
   let arrowDirX = 1;
 
+  // A visible, clickable counterpart to Q/W/E -- so the material switch
+  // (otherwise invisible) is discoverable and usable without a keyboard.
+  // Shared by both the keydown handler below and the buttons' own click
+  // listeners, so the two stay in sync automatically.
+  const materialButtons = Array.from(root.querySelectorAll<HTMLButtonElement>("[data-material]"));
+  function applyMaterial(key: "metal" | "bamboo" | "glass"): void {
+    setMaterial(key);
+    for (const button of materialButtons) {
+      const active = button.dataset.material === key;
+      button.classList.toggle("active", active);
+      button.setAttribute("aria-pressed", String(active));
+    }
+  }
+  for (const button of materialButtons) {
+    button.addEventListener("click", () => {
+      markInteracted();
+      applyMaterial(button.dataset.material as "metal" | "bamboo" | "glass");
+    });
+  }
+
   window.addEventListener("keydown", (event) => {
     if (event.repeat || event.target instanceof HTMLSelectElement) {
       return;
@@ -339,7 +359,7 @@ export function initChimes(root: HTMLElement): void {
     const materialKey = event.key.toLowerCase();
     if (materialKey === "q" || materialKey === "w" || materialKey === "e") {
       markInteracted();
-      setMaterial(materialKey === "q" ? "metal" : materialKey === "w" ? "bamboo" : "glass");
+      applyMaterial(materialKey === "q" ? "metal" : materialKey === "w" ? "bamboo" : "glass");
       return;
     }
     // Space throws a gust, same as the Wind button -- but not when a button
