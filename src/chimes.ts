@@ -44,9 +44,9 @@ function throwGust(): void {
 }
 
 // velocity is 0-1: how hard/fast this particular strike was. Taps and key
-// presses have no natural speed to measure, so they default to a firm,
-// deliberate press rather than a soft brush.
-function ring(chime: Chime, velocity = 0.7): void {
+// presses have no motion to measure it from, so they default to a plain
+// medium strike -- neither soft nor hard.
+function ring(chime: Chime, velocity = 0.55): void {
   playChime(chime.midi, chime.duration, velocity, chime.x);
   chime.button.classList.add("ringing");
   window.setTimeout(() => {
@@ -55,11 +55,14 @@ function ring(chime: Chime, velocity = 0.7): void {
 }
 
 // How fast a chime has to be swinging before it counts as "struck" --
-// crossing this is what turns wind (or a strum) into an actual ring.
+// crossing this is what turns wind into an actual ring.
 const RING_VELOCITY = 1.6;
-// Swing speed, normalized against this, becomes the wind-driven ring's
-// velocity -- floored so a wind-triggered ring is never inaudibly faint.
-const MAX_SWING_VELOCITY = RING_VELOCITY * 3;
+// A wind-driven ring's velocity maps the swing speed *above* RING_VELOCITY
+// (a gust too gentle to reach it never rings at all) onto 0-1, so a gust
+// that only just crosses the threshold rings soft and a strong one that
+// swings the chime much faster rings hard -- the full range is reachable,
+// not just its upper half.
+const MAX_SWING_VELOCITY = RING_VELOCITY * 2.2;
 const MAX_ANGLE = 0.5;
 const WIND_FORCE_SCALE = 26;
 
@@ -89,7 +92,8 @@ function stepPhysics(chime: Chime, dt: number, now: number): void {
   const cooldownElapsed = now - chime.lastRungAt > Math.max(0.15, chime.duration * 0.2);
   if (hasInteracted && crossedThreshold && cooldownElapsed) {
     chime.lastRungAt = now;
-    const velocity = Math.max(0.2, Math.min(1, Math.abs(chime.angularVelocity) / MAX_SWING_VELOCITY));
+    const swing = Math.abs(chime.angularVelocity);
+    const velocity = Math.max(0.05, Math.min(1, (swing - RING_VELOCITY) / (MAX_SWING_VELOCITY - RING_VELOCITY)));
     ring(chime, velocity);
   }
 }
@@ -132,6 +136,12 @@ const MIN_PUSH_SPEED = 300;
 const MAX_PUSH_SPEED = 2000;
 const WIND_RAMP_SECONDS = 0.55;
 const WIND_BUILD_FLOOR = 0.05;
+
+// A strum's speed normalizes over its own, much lower range -- contact with
+// a chime is a small, deliberate motion, not the sustained sweep a gust
+// needs, so a drag across it barely reaches wind's MIN_PUSH_SPEED at all.
+const MIN_STRUM_SPEED = 50;
+const MAX_STRUM_SPEED = 1500;
 
 // Press-and-drag is the main way to play: through the gaps it raises wind
 // that builds up and sways/rings nearby chimes on its own (via stepPhysics
@@ -186,23 +196,33 @@ function setupWind(field: HTMLElement, chimes: Chime[]): void {
       drag.dirX = Math.sign(dx);
     }
 
-    // How hard this particular instant is pushing, before any ramping --
-    // used directly for the strum kick below so a strum stays crisp, and
-    // fed through the ramp filter for the wind itself so it doesn't.
-    const instant = Math.max(0, Math.min((speed - MIN_PUSH_SPEED) / (MAX_PUSH_SPEED - MIN_PUSH_SPEED), 1));
-    drag.windBuild += (instant - drag.windBuild) * Math.min(dt / WIND_RAMP_SECONDS, 1);
-
-    if (drag.windBuild > WIND_BUILD_FLOOR) {
-      const rect = field.getBoundingClientRect();
-      const xPercent = ((event.clientX - rect.left) / rect.width) * 100;
-      addGust(xPercent, drag.dirX, drag.windBuild);
-    }
-
     const hit = chimeAtPoint(chimes, event.clientX, event.clientY);
-    if (hit && !drag.strummed.has(hit)) {
-      drag.strummed.add(hit);
-      hit.angularVelocity += drag.dirX * Math.min(2 + instant * 4, 6);
-      ring(hit, Math.max(0.15, instant));
+
+    if (hit) {
+      // Direct contact only ever rings the chime it touches -- it never
+      // also raises wind, so the two gestures stay legible as separate
+      // things. The strum's own speed (not wind's push-speed range) sets
+      // how hard it rings: a slow drift across it is soft, a fast swipe hard.
+      if (!drag.strummed.has(hit)) {
+        drag.strummed.add(hit);
+        const strumVelocity = Math.max(0.1, Math.min((speed - MIN_STRUM_SPEED) / (MAX_STRUM_SPEED - MIN_STRUM_SPEED), 1));
+        hit.angularVelocity += drag.dirX * Math.min(2 + strumVelocity * 4, 6);
+        ring(hit, strumVelocity);
+      }
+      // Let any wind already building settle back down while the pointer
+      // is over a chime, rather than carrying it into the next gap.
+      drag.windBuild += (0 - drag.windBuild) * Math.min(dt / WIND_RAMP_SECONDS, 1);
+    } else {
+      // How hard this particular instant is pushing, before any ramping --
+      // fed through the ramp filter so the wind itself builds gradually.
+      const instant = Math.max(0, Math.min((speed - MIN_PUSH_SPEED) / (MAX_PUSH_SPEED - MIN_PUSH_SPEED), 1));
+      drag.windBuild += (instant - drag.windBuild) * Math.min(dt / WIND_RAMP_SECONDS, 1);
+
+      if (drag.windBuild > WIND_BUILD_FLOOR) {
+        const rect = field.getBoundingClientRect();
+        const xPercent = ((event.clientX - rect.left) / rect.width) * 100;
+        addGust(xPercent, drag.dirX, drag.windBuild);
+      }
     }
 
     drag.lastX = event.clientX;

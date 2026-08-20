@@ -166,7 +166,7 @@ function materialForX(xPercent: number): Material {
 // swing speed the wind gave a chime -- it sets both loudness and how much of
 // the upper partial mix comes through, so a soft strike is quiet and mellow
 // and a hard one is loud and bright, the same regardless of what caused it.
-export function playChime(midi: number, durationSeconds: number, velocity = 0.7, xPercent = 50): void {
+export function playChime(midi: number, durationSeconds: number, velocity = 0.55, xPercent = 50): void {
   const audioCtx = getContext();
   const now = audioCtx.currentTime;
   const freq = midiToFrequency(midi);
@@ -183,13 +183,18 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.7,
   const decaySeconds = durationSeconds * material.decayScale * jitterDecay;
   const stopAt = now + decaySeconds + 0.15;
 
+  // Squaring velocity spreads the ends of the range apart instead of
+  // scaling loudness/brightness linearly -- a soft strike should read as
+  // clearly soft, not just a slightly quieter version of a hard one.
+  const vCurve = v * v;
+
   const voice = audioCtx.createGain();
-  voice.gain.value = 0.3 + v * 0.4;
+  voice.gain.value = 0.1 + vCurve * 0.75;
   voice.connect(audioCtx.destination);
   const { send } = getReverb(audioCtx);
   voice.connect(send);
 
-  const brightnessMix = material.brightnessBase * (0.4 + v * 0.9) * brightness;
+  const brightnessMix = material.brightnessBase * (0.12 + vCurve * 1.6) * brightness;
 
   material.partials.forEach((partial, i) => {
     const partialGain = audioCtx.createGain();
@@ -230,7 +235,7 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.7,
   strikeFilter.frequency.value = material.strikeFilterFreq;
   strikeFilter.Q.value = material.strikeFilterQ;
   const strikeGain = audioCtx.createGain();
-  const strikePeak = 0.06 + v * 0.14;
+  const strikePeak = 0.015 + vCurve * 0.3;
   strikeGain.gain.setValueAtTime(0, now + jitterDelay);
   strikeGain.gain.linearRampToValueAtTime(strikePeak, now + jitterDelay + 0.006);
   strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + jitterDelay + 0.05);
