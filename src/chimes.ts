@@ -303,10 +303,20 @@ export function initChimes(root: HTMLElement): void {
   }
 
   const keyToChime = new Map<string, Chime>();
+  // Physical-key fallback, keyed by KeyboardEvent.code (e.g. "Semicolon")
+  // rather than the character in event.key -- some layouts turn the
+  // apostrophe/semicolon keys into dead keys or otherwise fail to report a
+  // plain "'" or ";" in event.key, even though event.code still reliably
+  // names the physical key that was pressed.
+  const codeToChime = new Map<string, Chime>();
   for (const chime of chimes) {
     const key = chime.button.dataset.key;
     if (key) {
       keyToChime.set(key, chime);
+    }
+    const code = chime.button.dataset.code;
+    if (code) {
+      codeToChime.set(code, chime);
     }
   }
 
@@ -370,7 +380,7 @@ export function initChimes(root: HTMLElement): void {
       throwGust();
       return;
     }
-    const chime = keyToChime.get(event.key.toLowerCase());
+    const chime = keyToChime.get(event.key.toLowerCase()) ?? codeToChime.get(event.code);
     if (chime) {
       markInteracted();
       ring(chime);
