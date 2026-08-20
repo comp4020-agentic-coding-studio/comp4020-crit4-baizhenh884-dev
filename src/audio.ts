@@ -110,8 +110,8 @@ interface Material {
   brightnessBase: number;
 }
 
-// Three zones across the field, each a different physical voice -- moving
-// along it should change the tone with no menu involved.
+// Three whole-instrument voices, switched together via setMaterial -- not
+// picked by position, so every chime always shares the same physical voice.
 const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
   metal: {
     partials: [
@@ -152,25 +152,24 @@ const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
   },
 };
 
-function materialForX(xPercent: number): Material {
-  if (xPercent < 100 / 3) {
-    return MATERIALS.metal;
-  }
-  if (xPercent < 200 / 3) {
-    return MATERIALS.bamboo;
-  }
-  return MATERIALS.glass;
+// One material at a time, shared by every chime -- switched from the
+// keyboard (Q/W/E), not derived from a chime's position, so the whole
+// instrument's voice changes together instead of zone by zone.
+let currentMaterial: Material = MATERIALS.metal;
+
+export function setMaterial(key: keyof typeof MATERIALS): void {
+  currentMaterial = MATERIALS[key];
 }
 
 // velocity is 0-1: how hard/fast the strike was, from a tap, a strum, or the
 // swing speed the wind gave a chime -- it sets both loudness and how much of
 // the upper partial mix comes through, so a soft strike is quiet and mellow
 // and a hard one is loud and bright, the same regardless of what caused it.
-export function playChime(midi: number, durationSeconds: number, velocity = 0.55, xPercent = 50): void {
+export function playChime(midi: number, durationSeconds: number, velocity = 0.55): void {
   const audioCtx = getContext();
   const now = audioCtx.currentTime;
   const freq = midiToFrequency(midi);
-  const material = materialForX(xPercent);
+  const material = currentMaterial;
   const v = Math.max(0, Math.min(velocity, 1));
 
   // Per-strike micro-variation -- so hitting the same chime twice never

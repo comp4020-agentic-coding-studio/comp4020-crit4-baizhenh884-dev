@@ -1,4 +1,4 @@
-import { playChime, setPaletteBrightness } from "./audio";
+import { playChime, setMaterial, setPaletteBrightness } from "./audio";
 import { addGust, windForceAt } from "./wind";
 import { initWindVisuals } from "./visuals";
 
@@ -53,7 +53,7 @@ function throwGust(): void {
 // presses have no motion to measure it from, so they default to a plain
 // medium strike -- neither soft nor hard.
 function ring(chime: Chime, velocity = 0.55): void {
-  playChime(chime.midi, chime.duration, velocity, chime.x);
+  playChime(chime.midi, chime.duration, velocity);
   chime.button.classList.add("ringing");
   window.setTimeout(() => {
     chime.button.classList.remove("ringing");
@@ -331,6 +331,15 @@ export function initChimes(root: HTMLElement): void {
       markInteracted();
       const strength = event.key === "ArrowUp" ? 0.95 : 0.25;
       addGust(arrowDirX === 1 ? 0 : 100, arrowDirX, strength);
+      return;
+    }
+    // Q/W/E switch the whole instrument's material together -- a global
+    // voice change, not a per-chime one, so it never touches which chime
+    // rings or the scale itself.
+    const materialKey = event.key.toLowerCase();
+    if (materialKey === "q" || materialKey === "w" || materialKey === "e") {
+      markInteracted();
+      setMaterial(materialKey === "q" ? "metal" : materialKey === "w" ? "bamboo" : "glass");
       return;
     }
     // Space throws a gust, same as the Wind button -- but not when a button
