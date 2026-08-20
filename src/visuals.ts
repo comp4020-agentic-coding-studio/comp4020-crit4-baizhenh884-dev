@@ -45,9 +45,12 @@ function drawSwooshLine(
   const segments = 14;
   ctx.save();
   ctx.lineCap = "round";
-  ctx.shadowColor = "rgba(255, 230, 180, 0.4)";
+  // A deeper, saturated blue-grey/teal -- warm white/pale gold got lost
+  // against both the blue sky and the white clouds, this reads clearly
+  // against both.
+  ctx.shadowColor = "rgba(40, 80, 96, 0.45)";
   ctx.shadowBlur = maxThickness * 1.1;
-  ctx.strokeStyle = "rgba(255, 244, 218, 0.75)";
+  ctx.strokeStyle = "rgba(52, 96, 112, 0.82)";
 
   let prevX = startX;
   let prevY = startY;
@@ -136,8 +139,8 @@ function drawGust(ctx: CanvasRenderingContext2D, visual: GustVisual, trace: Gust
   // Lower in the field, in the open space below the hanging chimes, rather
   // than crossing through the bells themselves.
   const anchorY = height * 0.74;
-  const baseLength = (140 + trace.intensity * 320) * ratio;
-  const spanRadius = (24 + trace.intensity * 40) * ratio;
+  const baseLength = (220 + trace.intensity * 460) * ratio;
+  const spanRadius = (34 + trace.intensity * 55) * ratio;
 
   const lineCount = Math.max(2, Math.min(MAX_GUST_LINES, Math.round(2 + trace.intensity * 3)));
   const leafCount = trace.intensity > 0.55 ? MAX_GUST_LEAVES : trace.intensity > 0.18 ? 1 : 0;
@@ -156,7 +159,7 @@ function drawGust(ctx: CanvasRenderingContext2D, visual: GustVisual, trace: Gust
     const ctrlX = anchorX - trace.dirX * length * 0.5;
     const ctrlY = anchorY + perpOffset * 0.5 - line.curveAmount * spanRadius + flutter;
 
-    drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, (1.6 + trace.intensity * 3.2) * ratio * line.thicknessScale, lineAlpha);
+    drawSwooshLine(ctx, startX, startY, ctrlX, ctrlY, endX, endY, (2.2 + trace.intensity * 4.4) * ratio * line.thicknessScale, lineAlpha);
   }
 
   for (let i = 0; i < leafCount; i++) {

@@ -66,6 +66,7 @@
           <div class="sky-gradient"></div>
           <div class="sky-clouds-far"></div>
           <div class="sky-clouds-near"></div>
+          <div class="garden-silhouette"></div>
         </div>
         <canvas id="wind-canvas" aria-hidden="true"></canvas>
         <div class="eave" aria-hidden="true"></div>
@@ -238,18 +239,24 @@
       </div>
 
       <div class="controls">
-        <button type="button" id="wind-button" aria-label="Throw a gust of wind, key Space">Wind <span class="key-hint">space</span></button>
-        <span class="controls-label" id="material-label">Material</span>
-        <div class="material-select" role="group" aria-labelledby="material-label">
-          <button type="button" class="material-option" data-material="metal" aria-pressed="false">Metal <span class="key-hint">Q</span></button>
-          <button type="button" class="material-option" data-material="bamboo" aria-pressed="false">Bamboo <span class="key-hint">W</span></button>
-          <button type="button" class="material-option active" data-material="glass" aria-pressed="true">Glass <span class="key-hint">E</span></button>
+        <div class="control-group">
+          <button type="button" id="wind-button" aria-label="Throw a gust of wind, key Space">Wind <span class="key-hint">space</span></button>
         </div>
-        <label for="palette">Sound palette</label>
-        <select id="palette" name="palette">
-          <option value="dusk" selected>Dusk (mellow)</option>
-          <option value="bright">Bright</option>
-        </select>
+        <div class="control-group">
+          <span class="controls-label" id="material-label">Material</span>
+          <div class="material-select" role="group" aria-labelledby="material-label">
+            <button type="button" class="material-option" data-material="metal" aria-pressed="false">Metal <span class="key-hint">Q</span></button>
+            <button type="button" class="material-option" data-material="bamboo" aria-pressed="false">Bamboo <span class="key-hint">W</span></button>
+            <button type="button" class="material-option active" data-material="glass" aria-pressed="true">Glass <span class="key-hint">E</span></button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label for="palette">Sound palette</label>
+          <select id="palette" name="palette">
+            <option value="dusk" selected>Dusk (mellow)</option>
+            <option value="bright">Bright</option>
+          </select>
+        </div>
       </div>
     </main>
     <script type="module" src="./main.ts"></script>
