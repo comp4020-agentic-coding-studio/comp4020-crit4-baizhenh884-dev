@@ -1,4 +1,4 @@
-import { playChime, setMaterial, setPaletteBrightness } from "./audio";
+import { playChime, setMaterial } from "./audio";
 import { addGust, windForceAt } from "./wind";
 import { initWindVisuals } from "./visuals";
 
@@ -406,15 +406,6 @@ export function initChimes(root: HTMLElement): void {
   const windButton = root.querySelector<HTMLButtonElement>("#wind-button");
   if (windButton) {
     windButton.addEventListener("click", throwGust);
-  }
-
-  const palette = root.querySelector<HTMLSelectElement>("#palette");
-  if (palette) {
-    const applyPalette = () => {
-      setPaletteBrightness(palette.value === "bright" ? 1.4 : 0.7);
-    };
-    palette.addEventListener("change", applyPalette);
-    applyPalette();
   }
 
   const canvas = field.querySelector<HTMLCanvasElement>("#wind-canvas");

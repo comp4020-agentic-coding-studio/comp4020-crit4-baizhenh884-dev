@@ -348,10 +348,10 @@ a {
   flex-wrap: wrap;
 }
 
-/* Each group of related controls (the wind throw, the material picker, the
-   sound palette) sits in its own soft rounded panel with generous internal
-   spacing, so the bar reads as a tidy set of separate tools rather than one
-   connected strip of buttons. */
+/* Each group of related controls (the wind throw, the material picker) sits
+   in its own soft rounded panel with generous internal spacing, so the bar
+   reads as a tidy set of separate tools rather than one connected strip of
+   buttons. */
 .control-group {
   display: flex;
   align-items: center;
@@ -406,15 +406,6 @@ a {
   margin-left: 0.3rem;
   font-size: 0.75rem;
   opacity: 0.75;
-}
-
-#palette {
-  border: 1px solid rgba(110, 80, 45, 0.45);
-  border-radius: 0.7rem;
-  background: #fdf6ea;
-  color: #4a3420;
-  padding: 0.4rem 0.6rem;
-  font: inherit;
 }
 
 @media (max-width: 30rem) {

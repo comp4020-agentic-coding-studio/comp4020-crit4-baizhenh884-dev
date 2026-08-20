@@ -37,14 +37,6 @@ function midiToFrequency(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
-// The palette <select>'s mood: an overall brightness multiplier on top of
-// whatever a chime's material and strike velocity already decided.
-let brightness = 0.7;
-
-export function setPaletteBrightness(value: number): void {
-  brightness = value;
-}
-
 // A short burst of noise, reused as the source for every strike's mallet
 // tick -- one buffer, filtered differently per material, rather than
 // synthesizing fresh noise per strike.
@@ -106,49 +98,81 @@ interface Material {
   decayScale: number;
   strikeFilterFreq: number;
   strikeFilterQ: number;
+  // How loud the mallet-tick transient is relative to the tonal partials --
+  // a knocking material (bamboo) leans on this far more than a ringing one.
+  strikeGainMult: number;
+  // Lowpass cutoff over the whole voice (tone + strike). A real ceiling on
+  // brightness that the per-partial amps can't fake: bamboo's hollow, muffled
+  // knock needs the high end gone entirely, not just quieter.
+  voiceFilterFreq: number;
+  reverbSendMult: number;
   detuneCents: number;
   brightnessBase: number;
 }
 
 // Three whole-instrument voices, switched together via setMaterial -- not
 // picked by position, so every chime always shares the same physical voice.
+// Deliberately built to be far apart on every axis (partial count/spacing,
+// decay length, strike character, filtering) rather than just retuning one
+// knob each, since "clearly a different material" is the whole point.
 const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
+  // Rich, resonant metallic ring: a dense inharmonic partial stack (real
+  // bell/tubular-bell bending-mode ratios) that decays slowly, so it has
+  // more body and a longer sustain than glass's single pure ting.
   metal: {
     partials: [
       { ratio: 1, amp: 1, decayMult: 1 },
-      { ratio: 2.756, amp: 0.42, decayMult: 0.55 },
-      { ratio: 5.404, amp: 0.22, decayMult: 0.32 },
-      { ratio: 8.933, amp: 0.1, decayMult: 0.18 },
+      { ratio: 2.756, amp: 0.48, decayMult: 0.8 },
+      { ratio: 4.516, amp: 0.3, decayMult: 0.6 },
+      { ratio: 5.404, amp: 0.22, decayMult: 0.45 },
+      { ratio: 8.933, amp: 0.13, decayMult: 0.3 },
     ],
-    decayScale: 1.5,
-    strikeFilterFreq: 3200,
-    strikeFilterQ: 0.6,
-    detuneCents: 5,
-    brightnessBase: 0.5,
+    decayScale: 2.1,
+    strikeFilterFreq: 3400,
+    strikeFilterQ: 0.7,
+    strikeGainMult: 1,
+    voiceFilterFreq: 15000,
+    reverbSendMult: 1.5,
+    detuneCents: 6,
+    brightnessBase: 0.55,
   },
+  // A hollow, dry, woody knock rather than a ring: only the fundamental and
+  // one fast-dying inharmonic partial, a short overall decay, a low-pitched
+  // "tok" transient that dominates over the (barely-there) tone, and a
+  // lowpass that removes the high end a ring would otherwise have.
   bamboo: {
     partials: [
-      { ratio: 1, amp: 1, decayMult: 1 },
-      { ratio: 2.4, amp: 0.28, decayMult: 0.45 },
-      { ratio: 3.8, amp: 0.12, decayMult: 0.28 },
+      { ratio: 1, amp: 1, decayMult: 0.7 },
+      { ratio: 2.4, amp: 0.1, decayMult: 0.16 },
     ],
-    decayScale: 0.6,
-    strikeFilterFreq: 1200,
-    strikeFilterQ: 0.45,
-    detuneCents: 3,
-    brightnessBase: 0.3,
+    decayScale: 0.32,
+    strikeFilterFreq: 420,
+    strikeFilterQ: 0.7,
+    strikeGainMult: 2.4,
+    voiceFilterFreq: 1700,
+    reverbSendMult: 0.25,
+    detuneCents: 1.5,
+    brightnessBase: 0.15,
   },
+  // Bright, pure, crisp: a clean high "ting" -- fewer partials than metal,
+  // spaced for a delicate high shimmer rather than metal's dense buzz, with
+  // a medium decay (shorter than metal's long sustain, not as clipped as
+  // bamboo's knock) and a tight, high-pitched strike transient.
   glass: {
     partials: [
       { ratio: 1, amp: 1, decayMult: 1 },
-      { ratio: 2.0, amp: 0.35, decayMult: 0.5 },
-      { ratio: 3.76, amp: 0.18, decayMult: 0.35 },
+      { ratio: 2.0, amp: 0.3, decayMult: 0.6 },
+      { ratio: 3.76, amp: 0.16, decayMult: 0.42 },
+      { ratio: 5.0, amp: 0.07, decayMult: 0.26 },
     ],
-    decayScale: 1.0,
-    strikeFilterFreq: 5200,
-    strikeFilterQ: 0.9,
-    detuneCents: 2.5,
-    brightnessBase: 0.4,
+    decayScale: 1.05,
+    strikeFilterFreq: 6000,
+    strikeFilterQ: 1.1,
+    strikeGainMult: 1,
+    voiceFilterFreq: 15000,
+    reverbSendMult: 0.9,
+    detuneCents: 2,
+    brightnessBase: 0.65,
   },
 };
 
@@ -189,11 +213,22 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
 
   const voice = audioCtx.createGain();
   voice.gain.value = 0.1 + vCurve * 0.75;
-  voice.connect(audioCtx.destination);
-  const { send } = getReverb(audioCtx);
-  voice.connect(send);
 
-  const brightnessMix = material.brightnessBase * (0.12 + vCurve * 1.6) * brightness;
+  // A hard ceiling on brightness that per-partial amps can't fake -- bamboo's
+  // muffled knock needs the high end actually gone, not just quieter.
+  const voiceFilter = audioCtx.createBiquadFilter();
+  voiceFilter.type = "lowpass";
+  voiceFilter.frequency.value = material.voiceFilterFreq;
+  voice.connect(voiceFilter);
+  voiceFilter.connect(audioCtx.destination);
+
+  const { send } = getReverb(audioCtx);
+  const reverbSend = audioCtx.createGain();
+  reverbSend.gain.value = material.reverbSendMult;
+  voiceFilter.connect(reverbSend);
+  reverbSend.connect(send);
+
+  const brightnessMix = material.brightnessBase * (0.12 + vCurve * 1.6);
 
   material.partials.forEach((partial, i) => {
     const partialGain = audioCtx.createGain();
@@ -234,7 +269,7 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
   strikeFilter.frequency.value = material.strikeFilterFreq;
   strikeFilter.Q.value = material.strikeFilterQ;
   const strikeGain = audioCtx.createGain();
-  const strikePeak = 0.015 + vCurve * 0.3;
+  const strikePeak = (0.015 + vCurve * 0.3) * material.strikeGainMult;
   strikeGain.gain.setValueAtTime(0, now + jitterDelay);
   strikeGain.gain.linearRampToValueAtTime(strikePeak, now + jitterDelay + 0.006);
   strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + jitterDelay + 0.05);
@@ -251,5 +286,7 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
 
   window.setTimeout(() => {
     voice.disconnect();
+    voiceFilter.disconnect();
+    reverbSend.disconnect();
   }, (decaySeconds + 0.25) * 1000);
 }
