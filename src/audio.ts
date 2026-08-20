@@ -108,6 +108,13 @@ interface Material {
   reverbSendMult: number;
   detuneCents: number;
   brightnessBase: number;
+  // Amplitude of the fundamental itself (usually full, 1) -- turning this
+  // down lets the overtone mix read louder relative to it, for a voice that
+  // leans on its upper partials rather than its low end.
+  fundamentalGain: number;
+  // How fast the mallet-tick transient ramps to its peak -- lower is a
+  // sharper, snappier onset; higher is a softer, duller one.
+  strikeAttackSeconds: number;
 }
 
 // Three whole-instrument voices, switched together via setMaterial -- not
@@ -135,44 +142,51 @@ const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
     reverbSendMult: 1.5,
     detuneCents: 6,
     brightnessBase: 0.55,
+    fundamentalGain: 1,
+    strikeAttackSeconds: 0.006,
   },
-  // A hollow, dry, woody knock rather than a ring: only the fundamental and
-  // one fast-dying inharmonic partial, a short overall decay, a low-pitched
-  // "tok" transient that dominates over the (barely-there) tone, and a
-  // lowpass that removes the high end a ring would otherwise have.
+  // A dead, muffled, hollow knock -- barely any tone at all (a fundamental
+  // that fades fast and a second partial that's all but gone), a hard, low
+  // lowpass so no highs survive, and a dark, dull strike, so it lands as a
+  // knuckle-on-wood "tok" with no ring left in it.
   bamboo: {
     partials: [
-      { ratio: 1, amp: 1, decayMult: 0.7 },
-      { ratio: 2.4, amp: 0.1, decayMult: 0.16 },
+      { ratio: 1, amp: 1, decayMult: 0.32 },
+      { ratio: 2.4, amp: 0.04, decayMult: 0.06 },
     ],
-    decayScale: 0.32,
-    strikeFilterFreq: 420,
-    strikeFilterQ: 0.7,
-    strikeGainMult: 2.4,
-    voiceFilterFreq: 1700,
-    reverbSendMult: 0.25,
-    detuneCents: 1.5,
-    brightnessBase: 0.15,
+    decayScale: 0.18,
+    strikeFilterFreq: 300,
+    strikeFilterQ: 0.5,
+    strikeGainMult: 2.6,
+    voiceFilterFreq: 850,
+    reverbSendMult: 0.1,
+    detuneCents: 1.2,
+    brightnessBase: 0.06,
+    fundamentalGain: 1,
+    strikeAttackSeconds: 0.006,
   },
-  // Bright, pure, crisp: a clean high "ting" -- fewer partials than metal,
-  // spaced for a delicate high shimmer rather than metal's dense buzz, with
-  // a medium decay (shorter than metal's long sustain, not as clipped as
-  // bamboo's knock) and a tight, high-pitched strike transient.
+  // Bright, pure, crisp: a sharp high ping right at the onset, then a clean,
+  // higher-shimmer bell tone -- more upper partials than before and a
+  // quieter fundamental so the voice leans on its shimmer instead of its low
+  // end, with less reverb warmth so it stays glassy and direct, not soft.
   glass: {
     partials: [
-      { ratio: 1, amp: 1, decayMult: 1 },
-      { ratio: 2.0, amp: 0.3, decayMult: 0.6 },
-      { ratio: 3.76, amp: 0.16, decayMult: 0.42 },
-      { ratio: 5.0, amp: 0.07, decayMult: 0.26 },
+      { ratio: 1, amp: 1, decayMult: 0.85 },
+      { ratio: 2.0, amp: 0.36, decayMult: 0.5 },
+      { ratio: 3.76, amp: 0.22, decayMult: 0.36 },
+      { ratio: 5.0, amp: 0.13, decayMult: 0.26 },
+      { ratio: 7.0, amp: 0.06, decayMult: 0.16 },
     ],
     decayScale: 1.05,
-    strikeFilterFreq: 6000,
-    strikeFilterQ: 1.1,
+    strikeFilterFreq: 7800,
+    strikeFilterQ: 1.6,
     strikeGainMult: 1,
     voiceFilterFreq: 15000,
-    reverbSendMult: 0.9,
-    detuneCents: 2,
-    brightnessBase: 0.65,
+    reverbSendMult: 0.55,
+    detuneCents: 2.2,
+    brightnessBase: 0.78,
+    fundamentalGain: 0.85,
+    strikeAttackSeconds: 0.003,
   },
 };
 
@@ -232,9 +246,9 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
 
   material.partials.forEach((partial, i) => {
     const partialGain = audioCtx.createGain();
-    // The fundamental always carries the note; velocity/palette brightness
+    // The fundamental always carries the note; velocity/material brightness
     // only changes how much of the overtone color rides on top of it.
-    const peak = i === 0 ? 1 : partial.amp * brightnessMix;
+    const peak = i === 0 ? material.fundamentalGain : partial.amp * brightnessMix;
     const attackAt = now + jitterDelay + 0.002 + i * 0.0015;
     partialGain.gain.setValueAtTime(0, now + jitterDelay);
     partialGain.gain.linearRampToValueAtTime(Math.max(peak, 0.0002), attackAt);
@@ -270,9 +284,10 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
   strikeFilter.Q.value = material.strikeFilterQ;
   const strikeGain = audioCtx.createGain();
   const strikePeak = (0.015 + vCurve * 0.3) * material.strikeGainMult;
+  const strikeAttackAt = now + jitterDelay + material.strikeAttackSeconds;
   strikeGain.gain.setValueAtTime(0, now + jitterDelay);
-  strikeGain.gain.linearRampToValueAtTime(strikePeak, now + jitterDelay + 0.006);
-  strikeGain.gain.exponentialRampToValueAtTime(0.0001, now + jitterDelay + 0.05);
+  strikeGain.gain.linearRampToValueAtTime(strikePeak, strikeAttackAt);
+  strikeGain.gain.exponentialRampToValueAtTime(0.0001, strikeAttackAt + 0.044);
   strike.connect(strikeFilter);
   strikeFilter.connect(strikeGain);
   strikeGain.connect(voice);
