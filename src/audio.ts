@@ -115,6 +115,20 @@ interface Material {
   // How fast the mallet-tick transient ramps to its peak -- lower is a
   // sharper, snappier onset; higher is a softer, duller one.
   strikeAttackSeconds: number;
+  // How long the mallet-tick takes to decay away after its peak -- a real
+  // knob on the transient's own length, not just its loudness or filtering.
+  strikeDecaySeconds: number;
+  // "bandpass" (the default mallet tick) vs "highpass" -- a highpass reads
+  // as filtered noise/sizzle rather than a resonant knock, for a material
+  // whose strike should sound like a click, not a tap.
+  strikeFilterType: BiquadFilterType;
+  // Octave (or other) shift applied on top of the chime's tuned pitch --
+  // 1 for every material that should sound at the instrument's actual tuning.
+  pitchMultiplier: number;
+  // Highpass cutoff over the whole voice, rolling off any low-end mud below
+  // it. 0 disables it entirely (no filter node added), which is what every
+  // material used before this existed.
+  voiceHighpassFreq: number;
 }
 
 // Three whole-instrument voices, switched together via setMaterial -- not
@@ -144,6 +158,10 @@ const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
     brightnessBase: 0.55,
     fundamentalGain: 1,
     strikeAttackSeconds: 0.006,
+    strikeDecaySeconds: 0.044,
+    strikeFilterType: "bandpass",
+    pitchMultiplier: 1,
+    voiceHighpassFreq: 0,
   },
   // A dead, muffled, hollow knock -- barely any tone at all (a fundamental
   // that fades fast and a second partial that's all but gone), a hard, low
@@ -164,31 +182,37 @@ const MATERIALS: Record<"metal" | "bamboo" | "glass", Material> = {
     brightnessBase: 0.06,
     fundamentalGain: 1,
     strikeAttackSeconds: 0.006,
+    strikeDecaySeconds: 0.044,
+    strikeFilterType: "bandpass",
+    pitchMultiplier: 1,
+    voiceHighpassFreq: 0,
   },
-  // Bright, pure, piercing: an even sharper, higher ping right at the onset,
-  // a sixth, very-high partial added purely for shimmer, a quieter
-  // fundamental so the voice leans harder into that shimmer, and still less
-  // reverb send so it cuts through clean and direct rather than blooming --
-  // deliberately the crispest of the three.
+  // A wine-glass "ting", not a bell: voiced a full octave above the
+  // instrument's actual tuning (pitchMultiplier), reduced to a near-pure
+  // sine plus two clean high harmonics instead of a dense inharmonic stack,
+  // a highpassed voice with no low end left in it, a near-instant attack
+  // into a short bright decay, and a few milliseconds of high-passed noise
+  // as the "tick" of nail on glass right at the onset.
   glass: {
     partials: [
-      { ratio: 1, amp: 1, decayMult: 0.8 },
-      { ratio: 2.0, amp: 0.4, decayMult: 0.46 },
-      { ratio: 3.76, amp: 0.26, decayMult: 0.32 },
-      { ratio: 5.0, amp: 0.17, decayMult: 0.22 },
-      { ratio: 7.0, amp: 0.1, decayMult: 0.14 },
-      { ratio: 9.2, amp: 0.05, decayMult: 0.09 },
+      { ratio: 1, amp: 1, decayMult: 0.55 },
+      { ratio: 3, amp: 0.22, decayMult: 0.22 },
+      { ratio: 6, amp: 0.08, decayMult: 0.1 },
     ],
-    decayScale: 1.05,
-    strikeFilterFreq: 9500,
-    strikeFilterQ: 2.2,
-    strikeGainMult: 1,
-    voiceFilterFreq: 18000,
-    reverbSendMult: 0.35,
-    detuneCents: 2.6,
-    brightnessBase: 0.92,
-    fundamentalGain: 0.78,
-    strikeAttackSeconds: 0.0018,
+    decayScale: 0.6,
+    strikeFilterFreq: 10000,
+    strikeFilterQ: 0.9,
+    strikeGainMult: 1.4,
+    voiceFilterFreq: 16000,
+    reverbSendMult: 0.22,
+    detuneCents: 1,
+    brightnessBase: 0.85,
+    fundamentalGain: 1,
+    strikeAttackSeconds: 0.0008,
+    strikeDecaySeconds: 0.012,
+    strikeFilterType: "highpass",
+    pitchMultiplier: 2,
+    voiceHighpassFreq: 400,
   },
 };
 
@@ -208,8 +232,8 @@ export function setMaterial(key: keyof typeof MATERIALS): void {
 export function playChime(midi: number, durationSeconds: number, velocity = 0.55): void {
   const audioCtx = getContext();
   const now = audioCtx.currentTime;
-  const freq = midiToFrequency(midi);
   const material = currentMaterial;
+  const freq = midiToFrequency(midi) * material.pitchMultiplier;
   const v = Math.max(0, Math.min(velocity, 1));
 
   // Per-strike micro-variation -- so hitting the same chime twice never
@@ -236,12 +260,24 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
   voiceFilter.type = "lowpass";
   voiceFilter.frequency.value = material.voiceFilterFreq;
   voice.connect(voiceFilter);
-  voiceFilter.connect(audioCtx.destination);
+
+  // Only added when a material actually wants it (glass), so materials that
+  // didn't ask for one get the exact same graph as before it existed.
+  let voiceHighpass: BiquadFilterNode | null = null;
+  let voiceOut: AudioNode = voiceFilter;
+  if (material.voiceHighpassFreq > 0) {
+    voiceHighpass = audioCtx.createBiquadFilter();
+    voiceHighpass.type = "highpass";
+    voiceHighpass.frequency.value = material.voiceHighpassFreq;
+    voiceFilter.connect(voiceHighpass);
+    voiceOut = voiceHighpass;
+  }
+  voiceOut.connect(audioCtx.destination);
 
   const { send } = getReverb(audioCtx);
   const reverbSend = audioCtx.createGain();
   reverbSend.gain.value = material.reverbSendMult;
-  voiceFilter.connect(reverbSend);
+  voiceOut.connect(reverbSend);
   reverbSend.connect(send);
 
   const brightnessMix = material.brightnessBase * (0.12 + vCurve * 1.6);
@@ -281,20 +317,21 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
   const strike = audioCtx.createBufferSource();
   strike.buffer = getNoiseBuffer(audioCtx);
   const strikeFilter = audioCtx.createBiquadFilter();
-  strikeFilter.type = "bandpass";
+  strikeFilter.type = material.strikeFilterType;
   strikeFilter.frequency.value = material.strikeFilterFreq;
   strikeFilter.Q.value = material.strikeFilterQ;
   const strikeGain = audioCtx.createGain();
   const strikePeak = (0.015 + vCurve * 0.3) * material.strikeGainMult;
   const strikeAttackAt = now + jitterDelay + material.strikeAttackSeconds;
+  const strikeSilentAt = strikeAttackAt + material.strikeDecaySeconds;
   strikeGain.gain.setValueAtTime(0, now + jitterDelay);
   strikeGain.gain.linearRampToValueAtTime(strikePeak, strikeAttackAt);
-  strikeGain.gain.exponentialRampToValueAtTime(0.0001, strikeAttackAt + 0.044);
+  strikeGain.gain.exponentialRampToValueAtTime(0.0001, strikeSilentAt);
   strike.connect(strikeFilter);
   strikeFilter.connect(strikeGain);
   strikeGain.connect(voice);
   strike.start(now + jitterDelay);
-  strike.stop(now + jitterDelay + 0.06);
+  strike.stop(strikeSilentAt + 0.01);
   strike.onended = () => {
     strike.disconnect();
     strikeFilter.disconnect();
@@ -304,6 +341,7 @@ export function playChime(midi: number, durationSeconds: number, velocity = 0.55
   window.setTimeout(() => {
     voice.disconnect();
     voiceFilter.disconnect();
+    voiceHighpass?.disconnect();
     reverbSend.disconnect();
   }, (decaySeconds + 0.25) * 1000);
 }
