@@ -1,0 +1,7 @@
+# Crit 4 reflection
+
+**A breakthrough that moved the work forward.**
+Early on, vague direction got me nowhere — "make it nicer" or "more crisp" barely moved anything. The real shift came with the glass timbre: after two rounds of "make it crisper" changed almost nothing, I stopped nudging and described a structural change instead — voice it an octave higher, a few pure partials instead of many, a bright transient at the onset — and it finally sounded like glass. That taught me that when repeated small asks fail, the problem is usually my approach, not the size of the ask. All week, the work only moved when I named the exact sound or feel I wanted, not a vague "better."
+
+**What it changed about who I want to be as a developer.**
+This crit had to work for a stranger with no instructions — my pod plays it before I say a word. That changed what I paid attention to: not whether the code worked, but whether a first-time player would understand it. The wind was invisible, so making it looked like a bug; I kept weighing whether to hint or let people discover; I put letter labels on the chimes and a "space" hint on the button so the way to play was visible without a manual. The question stopped being "does this work for me" and became "will someone who has never seen this get it in the first few seconds." I want to be a developer who designs for that first contact — who builds for the person on the other side with no context, not just something that works because I already know how it's meant to be used.
