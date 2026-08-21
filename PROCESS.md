@@ -1,85 +1,35 @@
 # Process overview
 
-<!-- TEMPLATE: this file is a shape to fill in, not a form. Replace everything
-     in it with your own overview, and delete this comment — `pnpm
-     check:evidence` will remind you if it's still here. -->
-
-A reading-guide to how the work came together --- a map to your process, not an
-essay about it. Markers read this file and follow its citations; they don't
-trawl the repo for evidence you didn't point at, so if a moment mattered, cite
-it.
-
-This file is the shape; the course site's
-[assessment page](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#what-you-submit)
-is the requirement, and its
-[word counts](https://comp.anu.edu.au/courses/comp4020-agentic-coding-studio/topics/assessment/#word-counts)
-cover every deliverable.
-
 ## What I built
 
-One paragraph: the thing, and the idea behind it.
+Play the Wind is a browser wind-chime instrument: eleven pentatonic chimes,
+in three timbres (metal, bamboo, glass), that you tap, strum, or set ringing
+by dragging wind through the field — rendered as a fūrin garden scene at
+dusk. All sound is synthesised live with the Web Audio API. The build moved
+through several turning points: replacing an oscillator-per-note piano sound
+with proper chime synthesis, separating "wind" from "touch" so dragging
+through a chime only rings it, giving each material a genuinely distinct
+voice, and rebuilding the field from plain grey bars into an illustrated
+scene. The two moments below are where the direction changed, not just the
+numbers.
 
 ## The moments that mattered
 
-Three or four for an assignment; fewer is fine for a weekly prototype. Keep the
-list short so each moment has room to do all four jobs:
+**Chimes, not a tuned piano.** The first working version triggered a single
+sine/triangle oscillator per note — pentatonic, but it read as a keyboard,
+not a chime. Instead of tuning its envelope, I replaced it with per-material
+voices built from inharmonic bell-partial ratios, a filtered-noise mallet
+tick, and per-partial decay so higher overtones fade faster than the
+fundamental. I checked it by listening for the shimmering ring-out a real
+chime has, not just a longer decay number
+([`0cfd2de`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-baizhenh884-dev/commit/0cfd2de3d19608f21a15a4f1f73014d88548847a)).
 
-1. **what happened** --- the problem, or the thing that went wrong
-2. **what you did instead of the obvious thing** --- the call you made, and why
-   it beat the obvious one
-3. **how you knew it was right** --- the check you ran, the viewport you looked
-   at, what you read before accepting the diff
-4. **the citation** --- a commit or commit range, a `CLAUDE.md` change, a check
-   that went from red to green, a prompt paired with the commit it produced
-
-Jobs 2 and 3 are the ones the repo can't tell a reader on its own, so they're
-where the marks are. The strongest moments are the ones where a correction
-landed in the **harness** --- the standards and checks your work has to satisfy
---- rather than in a retry: a rule added to `CLAUDE.md`, a check wired up, an
-attempt thrown away. Retrying until it passes is the routine case, and changing
-what the work runs against is the skilled one.
-
-Cite each moment as a link whose text is the commit hash or range and whose
-target is this repo's commit or compare URL, so a reader clicks straight to the
-evidence:
-
-- one commit: [`a1b2c3d`](https://github.com/YOUR-ORG/YOUR-REPO/commit/a1b2c3d)
-- a range:
-  [`a1b2c3d...e4f5a6b`](https://github.com/YOUR-ORG/YOUR-REPO/compare/a1b2c3d...e4f5a6b)
-
-To pair a prompt with the commit it produced, quote the prompt (curated, not a
-full transcript) next to the citation:
-
-> the prompt, verbatim
-
-Screenshots are welcome where one carries the verification better than a
-sentence does. Commit the file to this repo and link it with a **relative**
-path, which is what makes it render on GitHub: `![alt text](docs/before.png)`.
-Images don't count towards the word count and don't replace the citation.
-
-### A worked moment, for shape
-
-Delete this section along with the rest of the boilerplate --- it's here to show
-the four jobs in one paragraph, not to be imitated in content.
-
-> The date formatter kept coming back with `toLocaleDateString()` and no locale
-> argument, so the same build rendered differently on my machine and in CI. I'd
-> already re-prompted it twice, which fixed the line but not the habit, so the
-> third time I put the rule in `CLAUDE.md` instead
-> ([`3f9ac21`](https://github.com/YOUR-ORG/YOUR-REPO/commit/3f9ac21)) and added
-> a spec test that fails on a bare `toLocaleDateString`. That's what told me it
-> had actually taken: the test went red against the old code and green against
-> the new, and the next two features it wrote passed it without prompting
-> ([`3f9ac21...b7e0d14`](https://github.com/YOUR-ORG/YOUR-REPO/compare/3f9ac21...b7e0d14)).
-
-## Before you ship
-
-`pnpm check:evidence` verifies your citations resolve to real commits, that a
-reflection entry the marker reads is in `reflections/`, and that your
-`CLAUDE.md` is there --- before a marker ever opens the file. It checks that
-your map is traceable, not that it is good: the marker judges whether your
-small, deliberately chosen set of moments shows real judgement and reflection. A
-green check is not a substitute for that curation.
-
-Images aren't checked: whether one renders is visible the moment you look. Open
-this file on GitHub and look at it before you ship.
+**Glass wouldn't get crisp.** Two rounds of parametric tuning — sharper
+attack, more shimmer — still left Glass sounding like a duller Metal. Rather
+than a third nudge, I restructured it: an octave up, three clean partials
+instead of six inharmonic ones, a highpass "tick" transient in place of the
+bandpass knock, and a highpass on the whole voice. Metal and bamboo picked up
+the same new controls with values chosen to reproduce their old behaviour
+exactly, which `git diff` confirmed left their objects untouched, alongside a
+clean `pnpm check`
+([`577a4a7...86c5132`](https://github.com/comp4020-agentic-coding-studio/comp4020-crit4-baizhenh884-dev/compare/577a4a7...86c5132)).
